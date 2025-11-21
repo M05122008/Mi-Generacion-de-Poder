@@ -1,0 +1,7 @@
+# robots.txt for MIGP
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Point to sitemap
+Sitemap: https://migeneraciondepoder.netlify.app//sitemap.xml
