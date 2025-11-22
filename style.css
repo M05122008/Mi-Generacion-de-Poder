@@ -1,12 +1,16 @@
 body {
-    margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    background:linear-gradient(180deg,#071126 0%, #071322 100%); 
-    color:#e6eef8; 
-    line-height:1.5
+margin:0;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;  
+  background:linear-gradient(180deg,#071126 0%, #071322 100%);
+  color:#e6eef8; line-height:1.5
 }
 
+*{box-sizing: border-box;}
+
+.container{max-width:var(--max-width);margin:0 auto;padding:2rem}
+
 #header {
-    background-color: #00001b71;
+    background-color: #040014;
     color: #fff;
     padding: 20px;
     text-align: center;
@@ -34,11 +38,13 @@ body {
 }
 
 .section {
-    padding: 20px;
+    padding: 3rem 0;
 }
 
 .container {
-    margin: 0 auto;
+    max-width:var(--max-width);
+    margin:0 auto;
+    padding:2rem
 }
 
 .title {
@@ -70,10 +76,18 @@ body {
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
+    grid-template-columns:repeat(3,1fr)
 }
 
 .servidor-card {
-    box-shadow: #071126;
+    background-color: #000424;
+    padding: 20px;
+    border: 1px solid #000000;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+servidor-card:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
