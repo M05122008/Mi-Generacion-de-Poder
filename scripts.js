@@ -131,6 +131,71 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // --- Calendar / Events (with localStorage + admin) ---
+  // Firebase integration helpers (if Firebase is configured)
+  const isFirebaseReady = typeof window._FIREBASE !== 'undefined' && window._FIREBASE.db;
+  let isAdmin = false;
+
+  async function subscribeEventsAndRender() {
+    if(!isFirebaseReady) return;
+    try{
+      const db = window._FIREBASE.db;
+      db.collection('events').orderBy('date','asc').onSnapshot(snapshot=>{
+        events = [];
+        snapshot.forEach(doc=>{
+          const d = doc.data();
+          events.push({ id: doc.id, title: d.title||'', date: d.date, time: d.time||'', description: d.description||'', flyer: d.flyer||'' });
+        });
+        renderCalendar(currentDate);
+        renderAdminList();
+      });
+    }catch(e){ console.error('Firebase events listen error', e); }
+  }
+
+  async function adminCreateEventFirebase(dateISO, title, time, description, file){
+    try{
+      const storage = window._FIREBASE.storage;
+      const db = window._FIREBASE.db;
+      let flyerUrl = '';
+      if(file){
+        const path = 'flyers/' + Date.now() + '_' + file.name.replace(/\s+/g,'_');
+        const uploadTask = await storage.ref().child(path).put(file);
+        flyerUrl = await storage.ref().child(path).getDownloadURL();
+      }
+      await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, createdAt: new Date() });
+      alert('Evento creado en Firebase');
+    }catch(err){ console.error(err); alert('Error creando evento: '+err.message); }
+  }
+
+  function setupAuthUI(){
+    if(!isFirebaseReady) return;
+    const auth = window._FIREBASE.auth;
+    auth.onAuthStateChanged(async user=>{
+      if(user){
+        const token = await user.getIdTokenResult();
+        isAdmin = token.claims && token.claims.admin === true;
+        document.getElementById('btnAdminLogout').style.display = 'inline-block';
+        document.getElementById('btnAdminLogin').style.display = 'none';
+        if(isAdmin){ document.body.classList.add('is-admin'); }
+        else document.body.classList.remove('is-admin');
+      } else {
+        isAdmin = false;
+        document.getElementById('btnAdminLogout').style.display = 'none';
+        document.getElementById('btnAdminLogin').style.display = 'inline-block';
+        document.body.classList.remove('is-admin');
+      }
+    });
+  }
+
+  async function adminLogin(email, password){
+    try{ await window._FIREBASE.auth.signInWithEmailAndPassword(email, password); alert('Ingresado'); }
+    catch(e){ alert('Error login: '+e.message); }
+  }
+
+  async function adminLogout(){ if(isFirebaseReady) await window._FIREBASE.auth.signOut(); }
+
+  // Start listening to Firebase if configured
+  if(isFirebaseReady){ setupAuthUI(); subscribeEventsAndRender(); }
+
   function getISODateOffset(offsetDays){
     const d = new Date(); d.setDate(d.getDate() + offsetDays);
     return d.toISOString().slice(0,10);
@@ -252,7 +317,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const left = document.createElement('div'); left.innerHTML = `<strong>${ev.title}</strong><div class="muted">${ev.date} ${ev.time? ' - '+ev.time:''}</div>`;
       const right = document.createElement('div');
       const del = document.createElement('button'); del.textContent = 'Eliminar';
-      del.addEventListener('click', ()=>{ if(confirm('Eliminar evento?')){ events = events.filter(x=>x.id!==ev.id); saveEvents(); renderCalendar(currentDate); renderAdminList(); eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>'; }});
+      del.addEventListener('click', async ()=>{
+        if(!confirm('Eliminar evento?')) return;
+        if(isFirebaseReady && ev.id && ev.id.length===20){
+          // try delete from Firebase
+          try{ await window._FIREBASE.db.collection('events').doc(ev.id).delete(); }
+          catch(e){ console.error(e); alert('Error eliminando en Firebase: '+e.message); }
+        } else {
+          events = events.filter(x=>x.id!==ev.id); saveEvents();
+        }
+        renderCalendar(currentDate); renderAdminList(); eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
+      });
       right.appendChild(del);
       row.appendChild(left); row.appendChild(right);
       adminEvents.appendChild(row);
@@ -272,14 +347,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const date = document.getElementById('eventDate').value;
     const time = document.getElementById('eventTime').value;
     const desc = document.getElementById('eventDesc').value.trim();
+    const flyerFile = document.getElementById('eventFlyer')?.files?.[0];
     if(!title || !date) return alert('Complete título y fecha.');
-    const obj = { id: cryptoRandomId(), title, date, time, description: desc };
-    events.push(obj);
-    saveEvents();
-    renderCalendar(currentDate);
-    renderAdminList();
-    eventForm.reset();
-    eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
+    if(isFirebaseReady && isAdmin){
+      // create in Firebase and upload flyer
+      adminCreateEventFirebase(date, title, time, desc, flyerFile).then(()=>{
+        eventForm.reset();
+      });
+    } else {
+      const obj = { id: cryptoRandomId(), title, date, time, description: desc };
+      events.push(obj);
+      saveEvents();
+      renderCalendar(currentDate);
+      renderAdminList();
+      eventForm.reset();
+      eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
+    }
   });
 
   document.getElementById('cancelEvent')?.addEventListener('click', ()=>{ eventForm?.reset(); eventAdmin?.setAttribute('hidden',''); });
@@ -289,4 +372,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // init
   if(calendarEl){ renderCalendar(currentDate); eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>'; }
+  // hookup admin buttons if present
+  document.getElementById('btnAdminLogin')?.addEventListener('click', ()=>{
+    const e = document.getElementById('adminEmail').value;
+    const p = document.getElementById('adminPass').value;
+    if(!e||!p) return alert('Email y contraseña requeridos');
+    adminLogin(e,p);
+  });
+  document.getElementById('btnAdminLogout')?.addEventListener('click', ()=>{ adminLogout(); });
 });
