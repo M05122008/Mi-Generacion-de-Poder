@@ -9,6 +9,9 @@
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:Poppins, Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#071126 0%, #071322 100%); color:#e6eef8; line-height:1.5}
+
+/* Prevent horizontal scroll caused by wide nav/hero on small windows */
+html, body { overflow-x: hidden; }
 .container{max-width:var(--max-width);margin:0 auto;padding:0 1rem}
 a{color:var(--accent);text-decoration:none;transition:color .18s}
 a:hover{color:var(--accent-2)}
@@ -22,7 +25,41 @@ a:hover{color:var(--accent-2)}
 .site-nav{display:flex;gap:1rem;align-items:center}
 .site-nav a{color:inherit;text-decoration:none;padding:.25rem .6rem;border-radius:8px;transition:background .18s}
 .site-nav a:hover{background:rgba(255,255,255,0.04)}
+
+/* El Rey Jesus style header adjustments */
+.header--elrey{height:72px;padding:0 1rem;align-items:center}
+.header--elrey .header-left{flex:0 0 auto}
+.header--elrey .header-center{flex:1 1 auto;text-align:center}
+.header--elrey .header-right{flex:0 0 auto;display:flex;align-items:center;gap:0.6rem}
+.header--elrey .site-logo{height:52px}
+.header--elrey .site-nav{justify-content:center;gap:1.05rem}
+.header--elrey .site-nav a{font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:.4rem .7rem}
+.header--elrey .instagram{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#071126;padding:.45rem .9rem;border-radius:999px}
+
+/* On medium and small screens collapse center nav and show burger */
+@media (max-width:900px){
+  .header--elrey .header-center{display:none}
+  .header--elrey .nav-toggle{display:block}
+  .header--elrey .header-right{gap:.4rem}
+}
+
+/* header shrink styles */
+.site-header{transition:padding .26s ease-out, box-shadow .26s ease-out, backdrop-filter .26s ease-out, transform .26s ease-out}
+.site-header.shrink{padding:.35rem 1rem;backdrop-filter:blur(8px);box-shadow:0 6px 18px rgba(2,6,23,0.45)}
+.site-header .site-logo{transition:height .26s ease-out}
+.site-header .logo-text{transition:font-size .26s ease-out}
+.site-header.shrink .site-logo{height:40px}
+.site-header.shrink .logo-text{font-size:.9rem}
+
+/* hide/show header on scroll (translate out of view) */
+.site-header.hidden{transform:translateY(-100%);}
+
+@media (max-width:640px){
+  .header--elrey{height:auto;padding:.6rem 1rem}
+  .header--elrey .site-logo{height:48px}
+}
 .nav-toggle{display:none;background:transparent;border:0;color:inherit;font-size:1.4rem;}
+.nav-toggle{cursor:pointer;z-index:1500}
 .hero{position:relative;min-height:58vh;display:flex;align-items:center;color:#fff;background:none}
 .hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg, rgba(3,7,18,0.6), rgba(0,0,0,0.65));z-index:1}
 .hero-content{position:relative;padding:4rem 2rem;z-index:2}
@@ -82,7 +119,53 @@ margin:2rem auto;
 @media (max-width:900px){
   .gallery-grid{grid-template-columns:repeat(2,1fr)}
   .staff-grid{grid-template-columns:repeat(2,1fr)}
+  /* Ensure mobile nav slides in from right at this breakpoint */
+  .site-nav{position:fixed;right:0;top:0;height:100vh;width:300px;background:linear-gradient(180deg,#061025,#091424);flex-direction:column;padding:2.4rem 1rem;transform:translateX(110%);transition:transform .28s;z-index:1400}
+  .site-nav.open{transform:translateX(0)}
 }
+
+/* Mobile fallback overlay nav (guaranteed to open) */
+.mobile-nav-overlay{position:fixed;inset:0;background:rgba(2,6,23,0.65);display:none;align-items:flex-end;padding:0;z-index:1300;overflow:hidden}
+.mobile-nav-overlay.open{display:flex}
+.mobile-nav-overlay .mobile-nav-inner{width:100%;max-width:100%;margin:0 auto;background:linear-gradient(180deg,#061025,#091424);min-height:100vh;padding:2.4rem 1.25rem;box-shadow:0 -8px 40px rgba(0,0,0,0.6);transform:translateY(110%);transition:transform .36s cubic-bezier(.2,.85,.25,1)}
+.mobile-nav-overlay.open .mobile-nav-inner{transform:translateY(0)}
+.mobile-nav-overlay .mobile-nav-inner a{display:block;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:1.05rem;color:inherit}
+.mobile-nav-overlay .mobile-nav-close{position:fixed;right:12px;top:12px;background:transparent;border:0;color:#fff;font-size:1.6rem}
+
+@media (min-width:901px){
+  .mobile-nav-overlay{display:none!important}
+  /* Ensure mobile toggle hidden on wide screens */
+  .nav-toggle{display:none!important}
+}
+
+/* Hamburger (three bars) */
+.nav-toggle{width:42px;height:36px;display:flex;align-items:center;justify-content:center}
+.nav-toggle .burger{width:24px;height:16px;position:relative;display:block}
+.nav-toggle .burger i{position:absolute;left:0;right:0;height:2px;background:currentColor;border-radius:2px;transition:transform .36s cubic-bezier(.2,.85,.25,1), opacity .2s ease, top .36s cubic-bezier(.2,.85,.25,1)}
+.nav-toggle .burger i:nth-child(1){top:0}
+.nav-toggle .burger i:nth-child(2){top:7px}
+.nav-toggle .burger i:nth-child(3){top:14px}
+.nav-toggle.open .burger i:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.nav-toggle.open .burger i:nth-child(2){opacity:0}
+.nav-toggle.open .burger i:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* mobile overlay link reveal */
+.mobile-nav-overlay .mobile-nav-inner a{opacity:0;transform:translateY(18px);transition:opacity .36s cubic-bezier(.2,.85,.25,1), transform .36s cubic-bezier(.2,.85,.25,1)}
+.mobile-nav-overlay.open .mobile-nav-inner a{opacity:1;transform:translateY(0)}
+
+/* subtle section reveal for content similar to reference */
+.animate{opacity:0;transform:translateY(12px);transition:opacity .6s ease, transform .6s ease}
+.animate.in-view{opacity:1;transform:translateY(0)}
+
+/* nav link underline hover */
+.site-nav a{position:relative}
+.site-nav a::after{content:'';position:absolute;left:50%;transform:translateX(-50%) scaleX(0);bottom:-6px;height:3px;width:60%;background:var(--accent);border-radius:4px;transition:transform .22s ease}
+.site-nav a:hover::after{transform:translateX(-50%) scaleX(1)}
+
+/* hero fade for text */
+.hero-content h2{opacity:0;transform:translateY(8px);transition-property:opacity,transform;transition-duration:.42s;transition-timing-function:cubic-bezier(.22,.9,.3,1);transition-delay:.09s}
+.hero-content p{opacity:0;transform:translateY(8px);transition-property:opacity,transform;transition-duration:.42s;transition-timing-function:cubic-bezier(.22,.9,.3,1);transition-delay:.18s}
+.hero-content.in-view h2,.hero-content.in-view p{opacity:1;transform:translateY(0)}
 @media (max-width:640px){
   .header-inner{padding:0}
   .nav-toggle{display:block}
@@ -118,7 +201,7 @@ margin:2rem auto;
 .events-item:last-child{border-bottom:0}
 
 /* Admin form */
-.admin-controls{margin-top:.8rem;text-align:right}
+.admin-controls{margin-top:.8rem;text-align:right;position:relative}
 .event-admin{margin-top:1rem;background:rgba(255,255,255,0.02);padding:1rem;border-radius:8px}
 .event-admin .form-row{margin-bottom:.6rem}
 .event-admin input[type="text"], .event-admin input[type="date"], .event-admin input[type="time"], .event-admin textarea{width:100%;padding:.5rem;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
@@ -138,6 +221,19 @@ margin:2rem auto;
 .site-nav a{font-weight:600;text-transform:uppercase;letter-spacing:0.6px;padding:.6rem .9rem}
 .site-nav a.instagram{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#071126;padding:.5rem .8rem;border-radius:999px}
 
+/* Header login popover */
+.header-actions{position:relative;display:flex;align-items:center;gap:.5rem}
+.header-login-popover{position:absolute;right:0;top:calc(100% + 10px);width:320px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.04);padding:0.8rem;border-radius:10px;box-shadow:0 10px 30px rgba(2,6,23,0.6);z-index:1300}
+.header-login-popover .popover-inner{display:flex;flex-direction:column;gap:.5rem}
+.header-login-popover label{font-size:0.85rem;color:var(--muted)}
+.header-login-popover input{width:100%;padding:.5rem;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.popover-actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.4rem}
+.popover-note{font-size:0.8rem}
+
+@media (max-width:640px){
+  .header-login-popover{right:8px;left:8px;width:auto}
+}
+
 .hero{min-height:68vh;padding:0}
 .hero-content{max-width:880px;margin:0 auto;padding:6rem 1.25rem;text-align:center}
 .hero h2{font-size:2.6rem;line-height:1.05;text-transform:uppercase;letter-spacing:1px}
@@ -154,8 +250,35 @@ margin:2rem auto;
 
 .staff-card{padding:1.2rem;border-radius:14px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
 
-.card{transition:transform .18s, box-shadow .18s}
-.card:hover{transform:translateY(-6px);box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+.card-spotlight {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid #222;
+  background-color: #111;
+  padding: 2rem;
+  overflow: hidden;
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --spotlight-color: rgba(255, 255, 255, 0.05);
+}
+
+.card-spotlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at var(--mouse-x) var(--mouse-y), var(--spotlight-color), transparent 80%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.card-spotlight:hover::before,
+.card-spotlight:focus-within::before {
+  opacity: 0.6;
+}
 
 .calendar-grid .day{min-height:92px;padding:.6rem}
 .calendar-grid .day .date{font-size:0.95rem}
@@ -180,6 +303,23 @@ margin:2rem auto;
 .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
 .gallery-grid img{width:100%;height:260px;object-fit:cover;border-radius:14px;cursor:pointer;transition:transform .22s}
 .gallery-grid img:hover{transform:scale(1.02)}
+
+/* Mobile improvements: larger touch targets, stacked login, full-width popover */
+@media (max-width:640px){
+  .btn{padding:.85rem 1rem;font-size:1rem}
+  .admin-controls{text-align:left}
+  .inline-login{display:block;margin-top:.6rem}
+  .header-login-popover{position:static;right:auto;left:auto;top:auto;width:100%;box-shadow:none;border-radius:10px;padding:.6rem;margin-top:.4rem}
+  .header-login-popover .popover-inner{gap:.4rem}
+  .header-login-popover input{padding:.65rem}
+  .popover-actions{flex-direction:column;gap:.5rem}
+  .popover-actions .btn{width:100%}
+  .popover-status{font-size:.9rem}
+  .calendar-grid .day{min-height:72px}
+  .gallery-grid img{height:180px}
+  .staff-card img{width:100%;height:220px}
+  .event-admin input, .event-admin textarea, .event-admin button{font-size:1rem}
+}
 
 /* Pastors / Staff */
 .staff-grid{grid-template-columns:repeat(3,1fr);align-items:start}
@@ -226,4 +366,15 @@ margin:2rem auto;
   .staff-card img{width:100%;height:220px;border-radius:10px}
   .staff-card .staff-body{width:100%}
   .footer-grid{grid-template-columns:1fr;gap:1rem}
+}
+
+/* Show mobile-style nav earlier on medium screens to avoid header overflow */
+@media (max-width:900px){
+  .nav-toggle{display:block}
+  .site-nav{position:fixed;right:0;top:0;height:100vh;width:300px;background:linear-gradient(180deg,#061025,#091424);flex-direction:column;padding:2.4rem 1rem;transform:translateX(110%);transition:transform .28s;z-index:1400}
+  .site-nav.open{transform:translateX(0)}
+  .site-nav a{display:block;padding:.8rem .6rem}
+  .header-inner{gap:.8rem}
+  .container.header-inner{padding:0 1rem}
+  .hero-content{padding:3rem 1rem}
 }

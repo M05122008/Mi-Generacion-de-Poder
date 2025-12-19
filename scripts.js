@@ -6,13 +6,159 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Mobile nav toggle
   const navToggle = document.querySelector('.nav-toggle');
   const nav = document.querySelector('.site-nav');
+  if(navToggle) navToggle.setAttribute('aria-expanded','false');
+  // fallback: if nav is not found, try alternate container
+  const navEl = nav || document.querySelector('.header-center .site-nav') || document.querySelector('.header--elrey .site-nav');
+  // Replace the textual burger with a 3-bar burger element for animation
+  if(navToggle){
+    navToggle.innerHTML = '';
+    const burger = document.createElement('span'); burger.className = 'burger';
+    for(let i=0;i<3;i++){ const b = document.createElement('i'); burger.appendChild(b); }
+    navToggle.appendChild(burger);
+  }
+
   navToggle?.addEventListener('click', ()=>{
-    nav?.classList.toggle('open');
+    // toggle animated state on the toggle itself
+    navToggle.classList.toggle('open');
+    // open overlay (we use overlay as canonical mobile menu)
+    if(window.innerWidth <= 900){
+      const open = mobileOverlay.classList.toggle('open');
+      if(open){
+        // stagger reveal links (reversed so they appear bottom->top for upward menu)
+        const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
+        const total = links.length;
+        links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
+        // focus first link for accessibility
+        const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
+        // set aria
+        navToggle.setAttribute('aria-expanded','true');
+      } else {
+        navToggle.setAttribute('aria-expanded','false');
+        // return focus
+        navToggle.focus();
+      }
+    } else {
+      // on desktop, toggle the normal nav open class
+      const isOpen = navEl?.classList.toggle('open');
+      if(navToggle) navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
   });
-  // Close mobile nav when a link is clicked (better UX on phones)
+
+  // header shrink on scroll
+  const headerEl = document.querySelector('.site-header');
+  const heroContent = document.querySelector('.hero-content');
+  let lastScrollY = window.scrollY || window.pageYOffset;
+  function onScrollHeader(){
+    const y = window.scrollY || window.pageYOffset;
+    const dy = y - lastScrollY;
+    // shrink behavior
+    if(y > 40){
+      headerEl && headerEl.classList.add('shrink');
+      if(heroContent) heroContent.classList.remove('in-view');
+    } else {
+      headerEl && headerEl.classList.remove('shrink');
+      if(heroContent) heroContent.classList.add('in-view');
+    }
+    // hide on scroll down, show on scroll up (thresholds to avoid jitter)
+    if(typeof headerEl !== 'undefined' && headerEl){
+      if(dy > 12 && y > 120){ headerEl.classList.add('hidden'); }
+      else if(dy < -12){ headerEl.classList.remove('hidden'); }
+    }
+    lastScrollY = y;
+  }
+  window.addEventListener('scroll', onScrollHeader, {passive:true});
+  // initial check and ensure hero text appears with a small delay for transition
+  onScrollHeader();
+  setTimeout(()=>{ if(heroContent) heroContent.classList.add('in-view'); }, 90);
+
+  
+
+  // MOBILE OVERLAY FALLBACK: build a guaranteed mobile menu overlay from existing nav links
+  const mobileOverlay = document.createElement('div');
+  mobileOverlay.className = 'mobile-nav-overlay';
+  const inner = document.createElement('div'); inner.className = 'mobile-nav-inner';
+  const closeBtn = document.createElement('button'); closeBtn.className = 'mobile-nav-close'; closeBtn.innerHTML = '✕';
+  mobileOverlay.appendChild(closeBtn);
+  // ensure overlay sits visually below the header and fits remaining viewport
+  try{
+    // lower the overlay z-index to stay under header
+    mobileOverlay.style.zIndex = (headerEl && headerEl.style && headerEl.style.zIndex) ? (parseInt(headerEl.style.zIndex,10)-1) : '1000';
+  }catch(e){}
+  // copy links from existing .site-nav
+  const srcLinks = Array.from(document.querySelectorAll('.site-nav a'));
+  if(srcLinks.length){
+    srcLinks.forEach(a=>{
+      const copy = document.createElement('a');
+      copy.href = a.getAttribute('href') || '#';
+      copy.textContent = a.textContent || a.href;
+      copy.addEventListener('click', (e)=>{
+        // smooth scroll if anchor
+        const href = copy.getAttribute('href')||'';
+        if(href.startsWith('#')){
+          e.preventDefault();
+          const t = document.getElementById(href.slice(1));
+          if(t) t.scrollIntoView({behavior:'smooth', block:'start'});
+        }
+        mobileOverlay.classList.remove('open');
+      });
+      inner.appendChild(copy);
+    });
+  }
+  mobileOverlay.appendChild(inner);
+  document.body.appendChild(mobileOverlay);
+
+  // position inner panel so it doesn't cover header: compute available height
+  function layoutMobileOverlay(){
+    const hh = headerEl ? headerEl.offsetHeight : 72;
+    inner.style.position = 'fixed';
+    inner.style.left = '0';
+    inner.style.right = '0';
+    inner.style.bottom = '0';
+    inner.style.maxHeight = `calc(100vh - ${hh}px)`;
+    inner.style.overflowY = 'auto';
+  }
+  layoutMobileOverlay();
+  window.addEventListener('resize', layoutMobileOverlay, {passive:true});
+
+  // wire overlay open/close to toggles
+  function openMobileOverlay(){
+    // ensure header remains visible when menu opens
+    if(headerEl) headerEl.classList.remove('hidden');
+    layoutMobileOverlay();
+    mobileOverlay.classList.add('open');
+    const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
+    const total = links.length;
+    links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
+    const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
+  }
+  function closeMobileOverlay(){
+    mobileOverlay.classList.remove('open');
+    // return focus to menu button
+    if(navToggle) navToggle.focus();
+  }
+  if(navToggle) navToggle.addEventListener('click', (e)=>{ if(window.innerWidth <= 900) mobileOverlay.classList.add('open'); });
+  closeBtn.addEventListener('click', closeMobileOverlay);
+  // close on ESC
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ if(mobileOverlay.classList.contains('open')) closeMobileOverlay(); } });
+  // close when clicking outside inner
+  mobileOverlay.addEventListener('click', (e)=>{ if(e.target === mobileOverlay) closeMobileOverlay(); });
+  // Close nav when a link is clicked and perform smooth-scroll for hash links
   document.querySelectorAll('.site-nav a').forEach(a=>{
-    a.addEventListener('click', ()=>{
-      if(window.innerWidth <= 640) nav?.classList.remove('open');
+    a.addEventListener('click', (e)=>{
+      const href = a.getAttribute('href')||'';
+      // smooth scroll for same-page anchors
+      if(href.startsWith('#')){
+        e.preventDefault();
+        const id = href.slice(1);
+        const target = document.getElementById(id);
+        if(target){ target.scrollIntoView({behavior:'smooth', block:'start'}); }
+      }
+      // close the nav for small/medium screens (matches CSS breakpoint)
+      if(window.innerWidth <= 900){
+        nav?.classList.remove('open');
+        if(navToggle) navToggle.setAttribute('aria-expanded','false');
+        document.body.classList.remove('nav-open');
+      }
     });
   });
 
@@ -139,6 +285,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!isFirebaseReady) return;
     try{
       const db = window._FIREBASE.db;
+      // onSnapshot accepts (next, error) callbacks; handle permission errors explicitly
       db.collection('events').orderBy('date','asc').onSnapshot(snapshot=>{
         events = [];
         snapshot.forEach(doc=>{
@@ -147,23 +294,63 @@ document.addEventListener('DOMContentLoaded', ()=>{
         });
         renderCalendar(currentDate);
         renderAdminList();
+      }, err => {
+        console.warn('Firestore onSnapshot error:', err);
+        // If permission denied, fallback to localStorage events and notify admin to fix rules
+        if(err && err.code === 'permission-denied'){
+          console.warn('Firestore permission denied — usando eventos desde localStorage como fallback.');
+          events = loadEvents();
+          renderCalendar(currentDate);
+          renderAdminList();
+        }
       });
-    }catch(e){ console.error('Firebase events listen error', e); }
+    }catch(e){ console.error('Firebase events listen setup error', e); }
   }
 
   async function adminCreateEventFirebase(dateISO, title, time, description, file){
     try{
-      const storage = window._FIREBASE.storage;
       const db = window._FIREBASE.db;
       let flyerUrl = '';
-      if(file){
+      // If Cloudinary configured, upload there
+      if(window._UPLOAD && window._UPLOAD.provider === 'cloudinary' && file){
+        try{
+          flyerUrl = await uploadToCloudinary(file);
+        }catch(err){ console.error('Cloudinary upload failed', err); throw err; }
+      }
+      // If Firebase storage is available and no flyerUrl yet, try Firebase storage
+      else if(window._FIREBASE && window._FIREBASE.storage && file){
+        const storage = window._FIREBASE.storage;
         const path = 'flyers/' + Date.now() + '_' + file.name.replace(/\s+/g,'_');
         const uploadTask = await storage.ref().child(path).put(file);
         flyerUrl = await storage.ref().child(path).getDownloadURL();
       }
-      await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, createdAt: new Date() });
-      alert('Evento creado en Firebase');
+
+      if(db){
+        await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, createdAt: new Date() });
+        alert('Evento creado en Firebase');
+      } else {
+        // fallback to localStorage
+        const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl };
+        events.push(obj);
+        saveEvents();
+        renderCalendar(currentDate);
+        renderAdminList();
+        alert('Evento creado en local (sin Firebase)');
+      }
     }catch(err){ console.error(err); alert('Error creando evento: '+err.message); }
+  }
+
+  // Upload helper for Cloudinary (unsigned upload preset)
+  async function uploadToCloudinary(file){
+    if(!window._UPLOAD || !window._UPLOAD.cloudName || !window._UPLOAD.uploadPreset) throw new Error('Cloudinary no configurado');
+    const url = `https://api.cloudinary.com/v1_1/${window._UPLOAD.cloudName}/upload`;
+    const fd = new FormData();
+    fd.append('upload_preset', window._UPLOAD.uploadPreset);
+    fd.append('file', file);
+    const res = await fetch(url, { method: 'POST', body: fd });
+    if(!res.ok) throw new Error('Upload a Cloudinary falló');
+    const json = await res.json();
+    return json.secure_url || json.url;
   }
 
   function setupAuthUI(){
@@ -171,24 +358,96 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const auth = window._FIREBASE.auth;
     auth.onAuthStateChanged(async user=>{
       if(user){
-        const token = await user.getIdTokenResult();
+        // force token refresh to pick up custom claims set via admin script
+        const token = await user.getIdTokenResult(true);
         isAdmin = token.claims && token.claims.admin === true;
-        document.getElementById('btnAdminLogout').style.display = 'inline-block';
-        document.getElementById('btnAdminLogin').style.display = 'none';
+        const adminLogoutBtn = document.getElementById('btnAdminLogout');
+        const adminLoginBtn = document.getElementById('btnAdminLogin');
+        if(adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block';
+        if(adminLoginBtn) adminLoginBtn.style.display = 'none';
+        // header popover controls (if present)
+        const hbOut = document.getElementById('headerBtnLogout');
+        const hbIn = document.getElementById('headerBtnLogin');
+        if(hbOut) hbOut.style.display = 'inline-block';
+        if(hbIn) hbIn.style.display = 'none';
+        // show user info in header popover
+        const hEmail = document.getElementById('headerUserEmail');
+        const hStatus = document.getElementById('headerAdminStatus');
+        const hRefresh = document.getElementById('headerRefreshClaims');
+        if(hEmail) hEmail.textContent = user.email || '—';
+        if(hStatus) hStatus.textContent = isAdmin ? 'Administrador' : 'No administrador';
+        if(hRefresh) hRefresh.style.display = 'inline-block';
         if(isAdmin){ document.body.classList.add('is-admin'); }
         else document.body.classList.remove('is-admin');
+        // if user is admin, automatically open the admin panel
+        if(isAdmin && eventAdmin){ eventAdmin.removeAttribute('hidden'); renderAdminList(); }
       } else {
         isAdmin = false;
-        document.getElementById('btnAdminLogout').style.display = 'none';
-        document.getElementById('btnAdminLogin').style.display = 'inline-block';
+        const adminLogoutBtn = document.getElementById('btnAdminLogout');
+        const adminLoginBtn = document.getElementById('btnAdminLogin');
+        if(adminLogoutBtn) adminLogoutBtn.style.display = 'none';
+        if(adminLoginBtn) adminLoginBtn.style.display = 'inline-block';
+        const hbOut = document.getElementById('headerBtnLogout');
+        const hbIn = document.getElementById('headerBtnLogin');
+        if(hbOut) hbOut.style.display = 'none';
+        if(hbIn) hbIn.style.display = 'inline-block';
         document.body.classList.remove('is-admin');
+        const hEmail = document.getElementById('headerUserEmail');
+        const hStatus = document.getElementById('headerAdminStatus');
+        const hRefresh = document.getElementById('headerRefreshClaims');
+        if(hEmail) hEmail.textContent = '—';
+        if(hStatus) hStatus.textContent = '—';
+        if(hRefresh) hRefresh.style.display = 'none';
       }
     });
   }
 
+  // Header popover: toggle and hook login/logout
+  const headerLoginBtn = document.getElementById('headerLogin');
+  const headerPopover = document.getElementById('headerLoginPopover');
+  if(headerLoginBtn && headerPopover){
+    headerLoginBtn.addEventListener('click', (e)=>{
+      const visible = !headerPopover.hasAttribute('hidden');
+      if(visible) headerPopover.setAttribute('hidden',''); else headerPopover.removeAttribute('hidden');
+    });
+    // close popover when clicking outside
+    document.addEventListener('click', (e)=>{
+      if(!headerPopover) return;
+      if(headerPopover.hasAttribute('hidden')) return;
+      const path = e.composedPath ? e.composedPath() : (e.path || []);
+      if(path.indexOf(headerPopover)===-1 && e.target !== headerLoginBtn) headerPopover.setAttribute('hidden','');
+    });
+    document.getElementById('headerBtnLogin')?.addEventListener('click', ()=>{
+      const e = document.getElementById('headerEmail').value;
+      const p = document.getElementById('headerPass').value;
+      if(!e||!p) return alert('Email y contraseña requeridos');
+      adminLogin(e,p);
+      // keep popover open briefly; setupAuthUI will update buttons after state change
+    });
+    document.getElementById('headerBtnLogout')?.addEventListener('click', ()=>{ adminLogout(); });
+    // refresh claims button: force token refresh and update UI
+    document.getElementById('headerRefreshClaims')?.addEventListener('click', async ()=>{
+      try{
+        const user = window._FIREBASE && window._FIREBASE.auth && window._FIREBASE.auth.currentUser;
+        if(!user) return alert('No hay usuario autenticado');
+        await user.getIdTokenResult(true); // force refresh
+        const token = await user.getIdTokenResult();
+        isAdmin = token.claims && token.claims.admin === true;
+        const hStatus = document.getElementById('headerAdminStatus');
+        if(hStatus) hStatus.textContent = isAdmin ? 'Administrador' : 'No administrador';
+        if(isAdmin && eventAdmin){ eventAdmin.removeAttribute('hidden'); renderAdminList(); }
+        alert('Claims actualizados. Estado: ' + (isAdmin ? 'Administrador' : 'No administrador'));
+      }catch(err){ console.error(err); alert('Error actualizando claims: '+(err.message||err)); }
+    });
+  }
+
   async function adminLogin(email, password){
-    try{ await window._FIREBASE.auth.signInWithEmailAndPassword(email, password); alert('Ingresado'); }
-    catch(e){ alert('Error login: '+e.message); }
+    try{
+      await window._FIREBASE.auth.signInWithEmailAndPassword(email, password);
+      // close the popover if it's open (better UX on mobile)
+      try{ const hp = document.getElementById('headerLoginPopover'); if(hp && !hp.hasAttribute('hidden')) hp.setAttribute('hidden',''); }catch(e){}
+      alert('Ingresado');
+    }catch(e){ alert('Error login: '+e.message); }
   }
 
   async function adminLogout(){ if(isFirebaseReady) await window._FIREBASE.auth.signOut(); }
@@ -203,9 +462,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // default demo events (used if no stored events)
   const DEFAULT_EVENTS = [
-    { id: cryptoRandomId(), date: getISODateOffset(0), title: 'Culto Dominical', time: '10:00', description: '' },
+    { id: cryptoRandomId(), date: getISODateOffset(0), title: 'Servicio Sobrenatural', time: '10:00', description: '' },
     { id: cryptoRandomId(), date: getISODateOffset(2), title: 'Reunión de Jóvenes', time: '18:00', description: '' },
-    { id: cryptoRandomId(), date: getISODateOffset(7), title: 'Oración y Ayuno', time: '05:00', description: '' }
+    { id: cryptoRandomId(), date: getISODateOffset(7), title: 'Casa de Oración Matutina', time: '05:00', description: '' }
   ];
 
   function cryptoRandomId(){ return Math.random().toString(36).slice(2,9); }
@@ -273,6 +532,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
 
+  // (duplicate onScrollHeader removed — single handler above controls header shrink and hero reveal)
+
   function appendDay(d, inactive){
     const el = document.createElement('div'); el.className='day' + (inactive? ' inactive':'');
     const iso = d.toISOString().slice(0,10);
@@ -302,7 +563,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
       let html = `<strong>${ev.title}</strong>`;
       if(ev.time) html += ` — <span class="muted">${ev.time}</span>`;
       if(ev.description) html += `<div>${ev.description}</div>`;
+      if(ev.flyer){
+        html += `<div class="event-flyer-thumb"><img src="${ev.flyer}" alt="Flyer" style="max-width:160px;cursor:pointer"/></div>`;
+      }
       it.innerHTML = html;
+      const img = it.querySelector('img');
+      if(img){
+        img.addEventListener('click', ()=>{
+          if(!modalContent) return;
+          modalContent.innerHTML = `<img src="${ev.flyer}" alt="Flyer" style="width:100%;height:auto"/>`;
+          openModal();
+        });
+      }
       eventsList.appendChild(it);
     });
   }
@@ -336,6 +608,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   toggleAdmin?.addEventListener('click', ()=>{
     if(!eventAdmin) return;
+    if(!isAdmin){
+      alert('Solo administradores pueden acceder al panel. Inicia sesión con una cuenta de administrador.');
+      return;
+    }
     const showing = !eventAdmin.hasAttribute('hidden');
     if(showing) eventAdmin.setAttribute('hidden',''); else eventAdmin.removeAttribute('hidden');
     renderAdminList();
@@ -349,6 +625,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const desc = document.getElementById('eventDesc').value.trim();
     const flyerFile = document.getElementById('eventFlyer')?.files?.[0];
     if(!title || !date) return alert('Complete título y fecha.');
+    // Only allow admins to create events
+    if(!isAdmin){
+      return alert('Solo administradores pueden crear eventos.');
+    }
     if(isFirebaseReady && isAdmin){
       // create in Firebase and upload flyer
       adminCreateEventFirebase(date, title, time, desc, flyerFile).then(()=>{
