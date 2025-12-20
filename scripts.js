@@ -44,27 +44,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   });
 
-  // header shrink on scroll
+  // header shrink + hide/show on scroll
   const headerEl = document.querySelector('.site-header');
   const heroContent = document.querySelector('.hero-content');
-  let lastScrollY = window.scrollY || window.pageYOffset;
+  let __lastScrollY = window.scrollY || window.pageYOffset || 0;
   function onScrollHeader(){
-    const y = window.scrollY || window.pageYOffset;
-    const dy = y - lastScrollY;
-    // shrink behavior
-    if(y > 40){
-      headerEl && headerEl.classList.add('shrink');
-      if(heroContent) heroContent.classList.remove('in-view');
-    } else {
-      headerEl && headerEl.classList.remove('shrink');
-      if(heroContent) heroContent.classList.add('in-view');
+    const y = window.scrollY || window.pageYOffset || 0;
+    // shrink behavior (small visual change when scrolled a bit)
+    if(y > 40){ headerEl && headerEl.classList.add('shrink'); if(heroContent) heroContent.classList.remove('in-view'); }
+    else { headerEl && headerEl.classList.remove('shrink'); if(heroContent) heroContent.classList.add('in-view'); }
+
+    // hide on scroll down, show on scroll up
+    const delta = y - __lastScrollY;
+    if(Math.abs(delta) > 8){
+      if(y > 60 && delta > 0){ // scrolling down
+        headerEl && headerEl.classList.add('hidden');
+      } else { // scrolling up or near top
+        headerEl && headerEl.classList.remove('hidden');
+      }
     }
-    // hide on scroll down, show on scroll up (thresholds to avoid jitter)
-    if(typeof headerEl !== 'undefined' && headerEl){
-      if(dy > 12 && y > 120){ headerEl.classList.add('hidden'); }
-      else if(dy < -12){ headerEl.classList.remove('hidden'); }
-    }
-    lastScrollY = y;
+    __lastScrollY = y;
   }
   window.addEventListener('scroll', onScrollHeader, {passive:true});
   // initial check and ensure hero text appears with a small delay for transition
@@ -78,7 +77,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   mobileOverlay.className = 'mobile-nav-overlay';
   const inner = document.createElement('div'); inner.className = 'mobile-nav-inner';
   const closeBtn = document.createElement('button'); closeBtn.className = 'mobile-nav-close'; closeBtn.innerHTML = '✕';
-  mobileOverlay.appendChild(closeBtn);
   // ensure overlay sits visually below the header and fits remaining viewport
   try{
     // lower the overlay z-index to stay under header
@@ -104,7 +102,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       inner.appendChild(copy);
     });
   }
+  // append inner first and then put the close button inside inner so it remains clickable
   mobileOverlay.appendChild(inner);
+  inner.appendChild(closeBtn);
   document.body.appendChild(mobileOverlay);
 
   // position inner panel so it doesn't cover header: compute available height
@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     inner.style.position = 'fixed';
     inner.style.left = '0';
     inner.style.right = '0';
+    inner.style.top = hh + 'px';
     inner.style.bottom = '0';
     inner.style.maxHeight = `calc(100vh - ${hh}px)`;
     inner.style.overflowY = 'auto';
