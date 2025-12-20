@@ -4,4 +4,4 @@ User-agent: *
 Allow: /
 
 # Point to sitemap
-Sitemap: https://mi-generacion-de-poder.pages.dev/sitemap.xml
+Sitemap: https://m05122008.github.io/Mi-Generacion-de-Poder/sitemap.xml
