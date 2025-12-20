@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     img.addEventListener('click', ()=>{
       if(!modalContent) return;
       const src = img.getAttribute('src');
-      modalContent.innerHTML = `<img src="${src}" alt="" />`;
+      modalContent.innerHTML = `<img class="modal-media" src="${src}" alt="" />`;
       openModal();
     });
   });
@@ -205,6 +205,41 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   },{threshold:0.12});
   document.querySelectorAll('.animate').forEach(el=> io.observe(el));
+
+  // Animated title letters for elements with .animate-title
+  function splitTitleLetters(){
+    const titles = document.querySelectorAll('.animate-title');
+    titles.forEach(t => {
+      // avoid splitting twice
+      if(t.dataset.splitDone) return;
+      const text = t.textContent.trim();
+      t.textContent = '';
+      const frag = document.createDocumentFragment();
+      Array.from(text).forEach((ch, i) => {
+        const span = document.createElement('span');
+        span.textContent = ch === ' ' ? '\u00A0' : ch;
+        // small stagger via inline style -- JS will later set animationDelay when in view
+        span.style.animationDelay = (i * 45) + 'ms';
+        frag.appendChild(span);
+      });
+      t.appendChild(frag);
+      t.dataset.splitDone = '1';
+    });
+  }
+  splitTitleLetters();
+
+  const titleObserver = new IntersectionObserver((entries, obs)=>{
+    entries.forEach(en => {
+      if(en.isIntersecting){
+        en.target.classList.add('in-view');
+        // add stagger to spans (in case CSS animation needs inline delay)
+        const spans = en.target.querySelectorAll('span');
+        spans.forEach((s, idx)=> s.style.animationDelay = (idx * 45) + 'ms');
+        obs.unobserve(en.target);
+      }
+    });
+  },{threshold:0.12});
+  document.querySelectorAll('.animate-title').forEach(el => titleObserver.observe(el));
 
   // Video cards
   document.querySelectorAll('[data-type="video"]').forEach(card=>{
@@ -565,19 +600,28 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(ev.time) html += ` — <span class="muted">${ev.time}</span>`;
       if(ev.description) html += `<div>${ev.description}</div>`;
       if(ev.flyer){
-        html += `<div class="event-flyer-thumb"><img src="${ev.flyer}" alt="Flyer" style="max-width:160px;cursor:pointer"/></div>`;
+        // show a single, modestly sized preview image (not duplicate thumbnail)
+        html += `<div class="event-flyer-preview"><img src="${ev.flyer}" alt="Flyer preview" class="event-flyer-img"/></div>`;
       }
       it.innerHTML = html;
       const img = it.querySelector('img');
       if(img){
         img.addEventListener('click', ()=>{
           if(!modalContent) return;
-          modalContent.innerHTML = `<img src="${ev.flyer}" alt="Flyer" style="width:100%;height:auto"/>`;
+          modalContent.innerHTML = `<img class="modal-media" src="${ev.flyer}" alt="Flyer"/>`;
           openModal();
         });
       }
       eventsList.appendChild(it);
     });
+      // Smooth-scroll the events panel into view so the user sees the flyer immediately
+      try{ eventsList.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
+
+      // mark selected day(s) in calendar for clearer focus
+      try{
+        document.querySelectorAll('.calendar-grid .day.selected').forEach(d=> d.classList.remove('selected'));
+        document.querySelectorAll(`.calendar-grid .day[data-date="${iso}"]`).forEach(d=> d.classList.add('selected'));
+      }catch(e){}
   }
 
   // Admin helpers
@@ -587,9 +631,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!events.length) return adminEvents.textContent = 'No hay eventos.';
     events.slice().sort((a,b)=> a.date.localeCompare(b.date)).forEach(ev=>{
       const row = document.createElement('div'); row.className='admin-event-row';
-      const left = document.createElement('div'); left.innerHTML = `<strong>${ev.title}</strong><div class="muted">${ev.date} ${ev.time? ' - '+ev.time:''}</div>`;
-      const right = document.createElement('div');
-      const del = document.createElement('button'); del.textContent = 'Eliminar';
+      const left = document.createElement('div'); left.className = 'left';
+      const info = document.createElement('div'); info.className = 'info';
+      // thumbnail if exists
+      if(ev.flyer){
+        const img = document.createElement('img'); img.className = 'thumb'; img.src = ev.flyer; img.alt = ev.title + ' flyer'; img.loading = 'lazy';
+        left.appendChild(img);
+      }
+      info.innerHTML = `<div class="event-title">${ev.title}</div><div class="event-meta">${ev.date}${ev.time? ' — '+ev.time:''}</div>`;
+      left.appendChild(info);
+      const right = document.createElement('div'); right.className = 'right';
+      const del = document.createElement('button'); del.textContent = 'Eliminar'; del.className = 'btn-danger';
       del.addEventListener('click', async ()=>{
         if(!confirm('Eliminar evento?')) return;
         if(isFirebaseReady && ev.id && ev.id.length===20){
@@ -601,6 +653,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
         renderCalendar(currentDate); renderAdminList(); eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
       });
+      // optional view button
+      const view = document.createElement('button'); view.textContent = 'Ver'; view.className = 'btn-outline';
+      view.addEventListener('click', ()=>{
+        if(!modalContent) return;
+        let html = `<h3>${ev.title}</h3><p class="muted">${ev.date}${ev.time? ' — '+ev.time:''}</p>`;
+        if(ev.description) html += `<p>${ev.description}</p>`;
+        if(ev.flyer) html += `<img class="modal-media" src="${ev.flyer}" alt="Flyer"/>`;
+        modalContent.innerHTML = html; openModal();
+      });
+      right.appendChild(view);
       right.appendChild(del);
       row.appendChild(left); row.appendChild(right);
       adminEvents.appendChild(row);
@@ -614,7 +676,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
       return;
     }
     const showing = !eventAdmin.hasAttribute('hidden');
-    if(showing) eventAdmin.setAttribute('hidden',''); else eventAdmin.removeAttribute('hidden');
+    if(showing){
+      // hide with animation
+      eventAdmin.classList.remove('open');
+      // after transition, set hidden
+      setTimeout(()=>{ eventAdmin.setAttribute('hidden',''); }, 380);
+    } else {
+      eventAdmin.removeAttribute('hidden');
+      // allow a tick then add open to trigger transition
+      requestAnimationFrame(()=> requestAnimationFrame(()=> eventAdmin.classList.add('open')));
+    }
     renderAdminList();
   });
 

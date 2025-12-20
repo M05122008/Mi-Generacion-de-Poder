@@ -77,8 +77,15 @@ main{padding-top:var(--header-height)}
 .section{padding: 20px;
 max-width:var(--max-width);
 margin:2rem auto;
-    }
+  }
 .section h3{margin:0 0 0.5rem}
+/* Improve readable typography for section content */
+.section p{font-size:1.05rem;line-height:1.75;color:rgba(230,238,248,0.95);margin-bottom:0.9rem}
+.section h3{font-size:1.35rem;letter-spacing:0.4px}
+
+/* Larger, bolder letters for the animated title */
+.animate-title{font-size:1.6rem;font-weight:700}
+.animate-title span{font-size:1.6rem}
 .muted{color:var(--muted);margin-bottom:1rem}
 .grid{display:grid;gap:1rem}
 .gallery-grid{grid-template-columns:repeat(3,1fr)}
@@ -112,8 +119,9 @@ margin:2rem auto;
 /* Modal */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.85);z-index:1200}
 .modal[aria-hidden="false"]{display:flex}
-.modal-content{max-width:90%;max-height:85%;border-radius:10px;overflow:hidden}
+.modal-content{max-width:90%;max-height:85%;border-radius:10px;overflow:hidden;padding:1rem}
 .modal-content img{display:block;max-width:100%;height:auto}
+.modal-media{max-width:90vw;max-height:80vh;object-fit:contain;display:block;margin:0 auto;border-radius:8px}
 .modal-close{position:absolute;right:1.6rem;top:1.2rem;background:transparent;border:0;color:#fff;font-size:1.6rem}
 /* Responsive */
 @media (max-width:900px){
@@ -161,6 +169,17 @@ margin:2rem auto;
 .animate{opacity:0;transform:translateY(12px);transition:opacity .6s ease, transform .6s ease}
 .animate.in-view{opacity:1;transform:translateY(0)}
 
+/* Animated title letters for Sobre section */
+.animate-title{display:inline-block;overflow:hidden}
+.animate-title span{display:inline-block;opacity:0;transform:translateY(18px) rotateX(-8deg);transform-origin:50% 50%;}
+.animate-title.in-view span{animation:letterRise .5s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes letterRise{
+  from{opacity:0;transform:translateY(18px) rotateX(-8deg) scale(.98)}
+  to{opacity:1;transform:translateY(0) rotateX(0) scale(1)}
+}
+.animate-title span:nth-child(odd){filter:brightness(1.05)}
+.animate-title{letter-spacing:0.6px}
+
 /* nav link underline hover */
 .site-nav a{position:relative}
 .site-nav a::after{content:'';position:absolute;left:50%;transform:translateX(-50%) scaleX(0);bottom:-6px;height:3px;width:60%;background:var(--accent);border-radius:4px;transition:transform .22s ease}
@@ -179,6 +198,9 @@ margin:2rem auto;
   .gallery-grid{grid-template-columns:repeat(1,1fr)}
   .video-grid{grid-template-columns:repeat(1,1fr)}
   .staff-grid{grid-template-columns:repeat(1,1fr)}
+  /* scale down animated title on small screens */
+  .animate-title{font-size:1.2rem}
+  .animate-title span{font-size:1.2rem}
 }
 .servidor-botones img {
     width:50%;
@@ -189,30 +211,64 @@ margin:2rem auto;
 }
 
 /* Calendar / Events styles */
-.events-wrap{max-width:860px;margin:1.2rem auto;text-align:left}
-.calendar-controls{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:0.6rem}
-#monthYear{font-weight:700}
-.calendar-controls button{background:rgba(255,255,255,0.03);border:0;color:inherit;padding:.4rem .7rem;border-radius:8px;cursor:pointer}
-.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;background:transparent}
-.calendar-grid .weekday{font-size:.8rem;text-align:center;color:var(--muted);padding:.4rem 0}
-.calendar-grid .day{min-height:80px;background:rgba(255,255,255,0.02);border-radius:8px;padding:.4rem;position:relative}
-.calendar-grid .day.inactive{opacity:0.25}
-.calendar-grid .day .date{font-weight:700;margin-bottom:.3rem}
-.calendar-grid .day .event-dot{position:absolute;left:8px;bottom:8px;width:8px;height:8px;border-radius:999px;background:var(--accent)}
-.events-list{margin-top:1rem;background:rgba(255,255,255,0.02);padding:1rem;border-radius:8px}
+.events-wrap{max-width:920px;margin:1.2rem auto;text-align:left;padding:1rem;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+.calendar-controls{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:0.8rem}
+#monthYear{font-weight:800;font-size:1.05rem;color:#fff}
+.calendar-controls button{background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border:0;color:inherit;padding:.46rem .8rem;border-radius:10px;cursor:pointer}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;background:transparent}
+.calendar-grid .weekday{font-size:.82rem;text-align:center;color:rgba(230,238,248,0.7);padding:.6rem 0;font-weight:700;text-transform:uppercase;letter-spacing:0.6px}
+.calendar-grid .day{min-height:92px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.015));border-radius:12px;padding:.6rem;position:relative;border:1px solid rgba(255,255,255,0.03);transition:transform .22s ease, box-shadow .22s ease, background .22s ease}
+.calendar-grid .day.inactive{opacity:0.35;filter:grayscale(.12)}
+.calendar-grid .day .date{font-weight:800;margin-bottom:.3rem;color:rgba(230,238,248,0.95)}
+.calendar-grid .day .event-dot{position:absolute;left:12px;bottom:12px;width:10px;height:10px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px rgba(0,0,0,0.45)}
+.calendar-grid .day:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(2,6,23,0.6)}
+.calendar-grid .day.selected{background:linear-gradient(180deg, rgba(0,90,255,0.12), rgba(0,90,255,0.06));border-color:rgba(0,90,255,0.22)}
+.calendar-grid .day.selected .date{color:#eaf6ff}
+.calendar-grid .day.today{box-shadow:inset 0 0 0 2px rgba(94,234,212,0.08);border-color:rgba(94,234,212,0.18)}
+.events-list{margin-top:1rem;background:linear-gradient(180deg, rgba(255,255,255,0.015), transparent);padding:1rem;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
 .events-list h4{margin:.2rem 0 .6rem}
-.events-item{padding:.5rem 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
+.events-item{padding:.7rem 0;border-bottom:1px dashed rgba(255,255,255,0.04)}
 .events-item:last-child{border-bottom:0}
 
 /* Admin form */
 .admin-controls{margin-top:.8rem;text-align:right;position:relative}
-.event-admin{margin-top:1rem;background:rgba(255,255,255,0.02);padding:1rem;border-radius:8px}
+.event-admin{margin-top:1rem;background:linear-gradient(180deg, rgba(2,6,23,0.7), rgba(3,9,22,0.6));padding:1.25rem;border-radius:12px;border:1px solid rgba(255,255,255,0.05);box-shadow:0 8px 30px rgba(2,6,23,0.6);position:relative}
+.event-admin::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(180deg,var(--accent),var(--accent-2));border-top-left-radius:12px;border-bottom-left-radius:12px}
+
+/* Slide / fade open animation for admin panel */
+.event-admin{transform:translateY(-8px);opacity:0;transition:transform .36s cubic-bezier(.2,.9,.25,1), opacity .36s ease}
+.event-admin.open{transform:translateY(0);opacity:1}
 .event-admin .form-row{margin-bottom:.6rem}
-.event-admin input[type="text"], .event-admin input[type="date"], .event-admin input[type="time"], .event-admin textarea{width:100%;padding:.5rem;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.event-admin input[type="text"], .event-admin input[type="date"], .event-admin input[type="time"], .event-admin textarea{width:100%;padding:.65rem;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:inherit;font-size:1rem}
+.event-admin input[type="text"]:focus, .event-admin input[type="date"]:focus, .event-admin input[type="time"]:focus, .event-admin textarea:focus{outline:none;box-shadow:0 4px 18px rgba(0,90,255,0.12);border-color:rgba(0,90,255,0.9)}
 .event-admin label{font-size:0.9rem}
 #adminEvents{margin-top:0.8rem}
-.admin-event-row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-top:1px solid rgba(255,255,255,0.02)}
-.admin-event-row button{background:transparent;border:0;color:var(--muted);cursor:pointer}
+.admin-event-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);margin-bottom:.6rem;box-shadow:0 6px 18px rgba(1,6,12,0.45)}
+.admin-event-row{display:flex;gap:12px;align-items:center}
+.admin-event-row .left{display:flex;gap:12px;align-items:center;flex:1;min-width:0}
+.admin-event-row .info{min-width:0}
+.admin-event-row .right{flex:0 0 auto;display:flex;gap:8px;align-items:center}
+.admin-event-row button{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:.45rem .6rem;border-radius:8px;transition:background .18s, color .18s}
+.admin-event-row button:hover{background:rgba(255,255,255,0.03);color:var(--accent)}
+
+/* Flyer thumbnail */
+.admin-event-row .thumb{width:68px;height:56px;object-fit:cover;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.5);flex:0 0 auto}
+.admin-event-row .event-title{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-event-row .event-meta{color:var(--muted);font-size:0.92rem;margin-top:4px}
+
+/* Event list flyer previews */
+.event-flyer-thumb{margin-top:0.5rem}
+.event-flyer-thumb-img{max-width:160px;cursor:pointer;border-radius:8px;object-fit:cover;display:block}
+.event-flyer-preview{margin-top:0.6rem}
+.event-flyer-preview .event-flyer-img{max-width:420px;max-height:60vh;width:auto;height:auto;object-fit:contain;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,0.6);cursor:pointer}
+
+/* Modern action buttons */
+.admin-event-row .btn-danger{background:linear-gradient(90deg,#ff5f6d,#ff7a59);color:#fff;border:0;padding:.45rem .7rem;border-radius:8px}
+.admin-event-row .btn-outline{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit;padding:.4rem .7rem;border-radius:8px}
+
+/* Make admin control buttons more visible */
+.admin-controls .btn{padding:.55rem .9rem}
+.admin-controls .btn.ghost{border-color:rgba(255,255,255,0.06)}
 
 /* Improved layout and visual refinements to look more like a modern template */
 :root{ --accent-strong: #003bb5; }

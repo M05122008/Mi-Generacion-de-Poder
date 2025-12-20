@@ -47,6 +47,32 @@
             "sameAs": ["https://www.instagram.com/migeneraciondepoder/"]
         }
         </script>
+                <!-- Video structured data for site videos -->
+                <script type="application/ld+json">
+                {
+                    "@context": "https://schema.org",
+                    "@graph": [
+                        {
+                            "@type": "VideoObject",
+                            "name": "Adoracion - MIGP",
+                            "description": "Fragmento de adoración del Ministerio Internacional Generación de Poder.",
+                            "thumbnailUrl": "https://mi-generacion-de-poder.pages.dev/assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_19966b52.jpg",
+                            "uploadDate": "2025-11-09",
+                            "contentUrl": "https://mi-generacion-de-poder.pages.dev/assets/VID-20251109-WA0867.mp4",
+                            "embedUrl": "https://mi-generacion-de-poder.pages.dev/assets/VID-20251109-WA0867.mp4"
+                        },
+                        {
+                            "@type": "VideoObject",
+                            "name": "Servicio Sobrenatural - MIGP",
+                            "description": "Extracto del servicio sobrenatural en MIGP.",
+                            "thumbnailUrl": "https://mi-generacion-de-poder.pages.dev/assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_e0e22f8c.jpg",
+                            "uploadDate": "2025-11-09",
+                            "contentUrl": "https://mi-generacion-de-poder.pages.dev/assets/VID-20251109-WA0797.mp4",
+                            "embedUrl": "https://mi-generacion-de-poder.pages.dev/assets/VID-20251109-WA0797.mp4"
+                        }
+                    ]
+                }
+                </script>
 </head>
 <body>
 <header class="site-header">
@@ -78,10 +104,10 @@
     <section class="hero">
         <!-- Banner slideshow: usa imágenes en assets/ -->
         <div class="banner" id="banner" aria-hidden="false">
-            <img src="assets/IMG-20250517-WA0034.jpg" alt="" class="banner-slide active">
-            <img src="assets/IMG-20251019-WA0228.jpg" alt="" class="banner-slide">
-            <img src="assets/IMG-20251014-WA0137.jpg" alt="" class="banner-slide">
-            <img src="assets/IMG-20251027-WA0123.jpg" alt="" class="banner-slide">
+            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio MIGP" loading="lazy" class="banner-slide active">
+            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto MIGP" loading="lazy" class="banner-slide">
+            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto MIGP" loading="lazy" class="banner-slide">
+            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado MIGP" loading="lazy" class="banner-slide">
         </div>
         <div class="hero-overlay"></div>
         <div class="container hero-content">
@@ -95,7 +121,7 @@
     </section>
 
     <section id="Sobre" class="section container">
-        <h3>Sobre Nosotros</h3>
+        <h3 class="animate-title">Sobre Nosotros</h3>
         <p>
             El Ministerio Internacional Generación de Poder es un Ministerio Bajo la Cobertura de la Pastora Gisela Bracho El Rey Jesus Punto Fijo.
         </p>
@@ -112,12 +138,12 @@
         <h3>Galería de Fotos</h3>
         <p class="muted">Haz click en una imagen para verla en grande.</p>
         <div class="grid gallery-grid">
-            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio" data-type="image">
-            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto" data-type="image">
-            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto" data-type="image">
-            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado" data-type="image">
-            <img src="assets/IMG-20251109-WA0364.jpg" alt="Predicación" data-type="image">
-            <img src="assets/IMG-20251108-WA0046.jpg" alt="Jóvenes" data-type="image">
+            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio" data-type="image" loading="lazy">
+            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto" data-type="image" loading="lazy">
+            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto" data-type="image" loading="lazy">
+            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado" data-type="image" loading="lazy">
+            <img src="assets/IMG-20251109-WA0364.jpg" alt="Predicación" data-type="image" loading="lazy">
+            <img src="assets/IMG-20251108-WA0046.jpg" alt="Jóvenes" data-type="image" loading="lazy">
         </div>
     </section>
 
@@ -126,12 +152,12 @@
         <p class="muted">Revisa algunos de nuestros mensajes y momentos especiales.</p>
         <div class="grid video-grid">
             <div class="video-card" data-type="video" data-video-id="assets/VID-20251109-WA0867.mp4">
-                <img src="assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_19966b52.jpg" alt="Video ejemplo">
+                <img src="assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_19966b52.jpg" alt="Adoración - miniatura" loading="lazy">
                 <div class="video-play">▶</div>
                 <p>Adoracion</p>
             </div>
             <div class="video-card" data-type="video" data-video-id="assets/VID-20251109-WA0797.mp4">
-                <img src="assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_e0e22f8c.jpg" alt="Video ejemplo">
+                <img src="assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_e0e22f8c.jpg" alt="Servicio - miniatura" loading="lazy">
                 <div class="video-play">▶</div>
                 <p>Servicio Sobrenatural</p>
             </div>
@@ -143,7 +169,7 @@
         <p class="muted">Conoce a nuestros pastores principales.</p>
         <div class="grid staff-grid">
                         <div class="staff-card animate" data-anim="fade-up">
-                            <img src="assets/IMG-20251027-WA0222.jpg" alt="Edgar Jimenez" data-type="image">
+                            <img src="assets/IMG-20251027-WA0222.jpg" alt="Edgar Jimenez" data-type="image" loading="lazy">
                                 <div class="staff-body">
                                     <h4>Edgar Jimenez</h4>
                                     <div class="role">Pastor Principal</div>
@@ -152,7 +178,7 @@
                                 </div>
                         </div>
                         <div class="staff-card animate" data-anim="fade-up">
-                            <img src="assets/IMG-20251023-WA0139.jpg" alt="Sarahi de Jimenez" data-type="image">
+                            <img src="assets/IMG-20251023-WA0139.jpg" alt="Sarahi de Jimenez" data-type="image" loading="lazy">
                                 <div class="staff-body">
                                     <h4>Sarahi de Jimenez</h4>
                                     <div class="role">Pastora</div>
@@ -267,7 +293,7 @@
 <footer class="site-footer">
     <div class="container footer-grid">
         <div class="footer-brand">
-            <img src="assets/logo-color.jpg" alt="Mi Generación de Poder" class="footer-logo">
+            <img src="assets/logo-color.jpg" alt="Mi Generación de Poder" class="footer-logo" loading="lazy">
             <p>Ministerio Internacional Generación de Poder — Tamacá, Barquisimeto. Únete a nuestros servicios y actividades.</p>
         </div>
         <div class="footer-links">
