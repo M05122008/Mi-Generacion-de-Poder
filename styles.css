@@ -376,6 +376,20 @@ margin:2rem auto;
   .hero p{font-size:0.98rem}
   .hero-cta{flex-direction:column;gap:.6rem}
 
+  /* Mobile header adapted to match desktop transparency/blur aesthetics */
+  .site-header{background:linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.16));backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.03)}
+  .site-header .brand{color:inherit}
+  .site-logo{display:block;height:46px}
+  .site-logo-dark{display:none}
+  .site-header .site-nav{display:none}
+  .header-right .instagram{display:inline-block}
+  .nav-toggle{background:transparent;border:0;font-size:1.6rem;color:#fff}
+  .header-inner{align-items:center}
+  .hero-content{padding:2.4rem 1rem;text-align:left}
+  .hero-cta{align-items:flex-start}
+  .hero-cta .btn{background:#fff;color:#071122;box-shadow:0 8px 30px rgba(2,6,23,0.12)}
+  .hero-cta .btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06)}
+
   /* Calendar: single-column, larger days and clearer separators */
   .calendar-grid{grid-template-columns:repeat(4,1fr);gap:8px}
   .calendar-grid .weekday{display:none}
