@@ -493,11 +493,16 @@ margin:2rem auto;
 
 /* Show mobile-style nav earlier on medium screens to avoid header overflow */
 @media (max-width:900px){
+  /* Ensure header remains translucent with blur like desktop */
+  .site-header{background:linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.16));backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.03)}
   .nav-toggle{display:block}
-  .site-nav{position:fixed;right:0;top:0;height:100vh;width:300px;background:linear-gradient(180deg,#061025,#091424);flex-direction:column;padding:2.4rem 1rem;transform:translateX(110%);transition:transform .28s;z-index:1400}
-  .site-nav.open{transform:translateX(0)}
+  /* Hide the horizontal nav on smaller screens; the mobile overlay (or slide-in) will be used instead */
+  .site-nav{display:none;position:fixed;right:0;top:0;height:100vh;width:300px;background:linear-gradient(180deg,#061025,#091424);flex-direction:column;padding:2.4rem 1rem;transform:translateX(110%);transition:transform .28s;z-index:1400}
+  .site-nav.open{display:block;transform:translateX(0)}
   .site-nav a{display:block;padding:.8rem .6rem}
   .header-inner{gap:.8rem}
   .container.header-inner{padding:0 1rem}
   .hero-content{padding:3rem 1rem}
+  /* Hide Instagram in the header on mobile (move inside menu if needed) */
+  .header-right .instagram{display:none}
 }
