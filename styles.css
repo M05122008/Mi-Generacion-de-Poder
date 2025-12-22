@@ -101,6 +101,17 @@ margin:2rem auto;
 .staff-card .staff-body{flex:1;min-width:0}
 .staff-card .staff-body p{margin-bottom:.5rem}
 
+/* Pastor social links: align icon and text neatly */
+.staff-body .ig-link{display:inline-flex;align-items:center;gap:.45rem;color:inherit}
+.staff-body .ig-link img.social-icon{width:18px;height:18px;display:inline-block;vertical-align:middle}
+
+/* Ensure contact card icons look crisp on retina and align with text */
+.card-spotlight img.social-icon{width:28px;height:28px;object-fit:contain}
+
+@media (max-width:640px){
+  .staff-body .ig-link img.social-icon{width:16px;height:16px}
+}
+
 /* Ensure image-left layout on desktop and stacked on mobile */
 .staff-card{flex-direction:row}
 @media (max-width:640px){
