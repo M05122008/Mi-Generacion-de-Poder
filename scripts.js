@@ -17,32 +17,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
     navToggle.appendChild(burger);
   }
 
-  navToggle?.addEventListener('click', ()=>{
-    // toggle animated state on the toggle itself
-    navToggle.classList.toggle('open');
-    // open overlay (we use overlay as canonical mobile menu)
-    if(window.innerWidth <= 900){
-      const open = mobileOverlay.classList.toggle('open');
-      if(open){
-        // stagger reveal links (reversed so they appear bottom->top for upward menu)
-        const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
-        const total = links.length;
-        links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
-        // focus first link for accessibility
-        const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
-        // set aria
-        navToggle.setAttribute('aria-expanded','true');
+  function handleNavToggle(ev){
+    // unify open/close behavior so the animated X always performs the close action
+    const isMobile = window.innerWidth <= 900;
+    const isOpen = mobileOverlay.classList.contains('open');
+    if(isMobile){
+      if(isOpen){
+        closeMobileOverlay();
       } else {
-        navToggle.setAttribute('aria-expanded','false');
-        // return focus
-        navToggle.focus();
+        openMobileOverlay();
       }
     } else {
-      // on desktop, toggle the normal nav open class
-      const isOpen = navEl?.classList.toggle('open');
-      if(navToggle) navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const newVal = navEl?.classList.toggle('open');
+      if(navToggle) navToggle.setAttribute('aria-expanded', newVal ? 'true' : 'false');
     }
-  });
+  }
+  navToggle?.addEventListener('click', handleNavToggle);
+  // also respond to pointerdown for improved touch reliability
+  navToggle?.addEventListener('pointerdown', handleNavToggle);
 
   // header shrink + hide/show on scroll
   const headerEl = document.querySelector('.site-header');
@@ -76,12 +68,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const mobileOverlay = document.createElement('div');
   mobileOverlay.className = 'mobile-nav-overlay';
   const inner = document.createElement('div'); inner.className = 'mobile-nav-inner';
-  const closeBtn = document.createElement('button'); closeBtn.className = 'mobile-nav-close'; closeBtn.innerHTML = '✕';
-  // ensure overlay sits visually below the header and fits remaining viewport
+  // ensure overlay sits above the header so overlay captures interaction
   try{
-    // lower the overlay z-index to stay under header
-    mobileOverlay.style.zIndex = (headerEl && headerEl.style && headerEl.style.zIndex) ? (parseInt(headerEl.style.zIndex,10)-1) : '1000';
+    const hz = headerEl ? parseInt(getComputedStyle(headerEl).zIndex || '2200', 10) : 2200;
+    mobileOverlay.style.zIndex = (hz + 10).toString();
   }catch(e){}
+
   // copy links from existing .site-nav
   const srcLinks = Array.from(document.querySelectorAll('.site-nav a'));
   if(srcLinks.length){
@@ -97,14 +89,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const t = document.getElementById(href.slice(1));
           if(t) t.scrollIntoView({behavior:'smooth', block:'start'});
         }
-        mobileOverlay.classList.remove('open');
+        // ensure the toggle animation is synced with overlay state
+        closeMobileOverlay();
       });
       inner.appendChild(copy);
     });
   }
   // append inner first and then put the close button inside inner so it remains clickable
   mobileOverlay.appendChild(inner);
-  inner.appendChild(closeBtn);
   document.body.appendChild(mobileOverlay);
 
   // position inner panel so it doesn't cover header: compute available height
@@ -127,21 +119,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(headerEl) headerEl.classList.remove('hidden');
     layoutMobileOverlay();
     mobileOverlay.classList.add('open');
+    // sync toggle button state
+    if(navToggle){ navToggle.classList.add('open'); navToggle.setAttribute('aria-expanded','true'); }
     const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
     const total = links.length;
     links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
+    // trigger letter animations for overlay links
+    mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.add('in-view'));
     const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
   }
   function closeMobileOverlay(){
+    // remove letter animation class first (for smoother reverse animation)
+    mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.remove('in-view'));
     mobileOverlay.classList.remove('open');
-    // return focus to menu button
-    if(navToggle) navToggle.focus();
+    // sync toggle button state and aria
+    if(navToggle){ navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); navToggle.focus(); }
   }
-  if(navToggle) navToggle.addEventListener('click', (e)=>{ if(window.innerWidth <= 900) mobileOverlay.classList.add('open'); });
-  closeBtn.addEventListener('click', closeMobileOverlay);
+  // (removed redundant click handler that forced mobile overlay open)
+  // listen to pointer and click events on close button for better mobile compatibility
+  // (inner close button removed)
   // close on ESC
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ if(mobileOverlay.classList.contains('open')) closeMobileOverlay(); } });
-  // close when clicking outside inner
+  // debug: log overlay pointer interactions
+  mobileOverlay.addEventListener('pointerdown', (e)=>{ if(e.target === mobileOverlay) closeMobileOverlay(); });
   mobileOverlay.addEventListener('click', (e)=>{ if(e.target === mobileOverlay) closeMobileOverlay(); });
   // Close nav when a link is clicked and perform smooth-scroll for hash links
   document.querySelectorAll('.site-nav a').forEach(a=>{
