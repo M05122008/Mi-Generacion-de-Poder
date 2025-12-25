@@ -19,6 +19,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function handleNavToggle(ev){
     // unify open/close behavior so the animated X always performs the close action
+    // prevent double-trigger on touch devices (click + pointerdown)
+    if(handleNavToggle._last && (Date.now() - handleNavToggle._last) < 300){
+      ev && ev.preventDefault && ev.preventDefault();
+      return;
+    }
+    handleNavToggle._last = Date.now();
     const isMobile = window.innerWidth <= 900;
     const isOpen = mobileOverlay.classList.contains('open');
     if(isMobile){
@@ -33,8 +39,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }
   navToggle?.addEventListener('click', handleNavToggle);
-  // also respond to pointerdown for improved touch reliability
-  navToggle?.addEventListener('pointerdown', handleNavToggle);
+  // remove pointerdown to avoid double toggling on mobile/touch
 
   // header shrink + hide/show on scroll
   const headerEl = document.querySelector('.site-header');
@@ -430,9 +435,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const adminLogoutBtn = document.getElementById('btnAdminLogout');
         const adminLoginBtn = document.getElementById('btnAdminLogin');
         const adminPanelBtn = document.getElementById('adminPanelBtn');
+        const userChip = document.getElementById('userChip');
+        const btnSignOut = document.getElementById('btnSignOut');
         if(adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block';
         if(adminLoginBtn) adminLoginBtn.style.display = 'none';
         if(adminPanelBtn) adminPanelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        if(userChip){
+          const labelRole = isAdmin ? 'Administrador' : (roleFromDb || 'Cliente');
+          userChip.textContent = (user.displayName || user.email || '—') + ' — ' + labelRole;
+          userChip.style.display = 'inline-flex';
+        }
+        if(btnSignOut) btnSignOut.style.display = 'inline-flex';
         // header popover controls (if present)
         const hbOut = document.getElementById('headerBtnLogout');
         const hbIn = document.getElementById('headerBtnLogin');
@@ -454,9 +467,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const adminLogoutBtn = document.getElementById('btnAdminLogout');
         const adminLoginBtn = document.getElementById('btnAdminLogin');
         const adminPanelBtn = document.getElementById('adminPanelBtn');
+        const userChip = document.getElementById('userChip');
+        const btnSignOut = document.getElementById('btnSignOut');
         if(adminLogoutBtn) adminLogoutBtn.style.display = 'none';
         if(adminLoginBtn) adminLoginBtn.style.display = 'inline-block';
         if(adminPanelBtn) adminPanelBtn.style.display = 'none';
+        if(userChip) userChip.style.display = 'none';
+        if(btnSignOut) btnSignOut.style.display = 'none';
         const hbOut = document.getElementById('headerBtnLogout');
         const hbIn = document.getElementById('headerBtnLogin');
         if(hbOut) hbOut.style.display = 'none';
@@ -495,6 +512,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // keep popover open briefly; setupAuthUI will update buttons after state change
     });
     document.getElementById('headerBtnLogout')?.addEventListener('click', ()=>{ adminLogout(); });
+    document.getElementById('btnSignOut')?.addEventListener('click', ()=>{ adminLogout(); });
     // refresh claims button: force token refresh and update UI
     document.getElementById('headerRefreshClaims')?.addEventListener('click', async ()=>{
       try{
