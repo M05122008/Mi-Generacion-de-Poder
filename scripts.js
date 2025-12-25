@@ -17,11 +17,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
       'pastors.sarahi':'Pastora Sarahi de Jimenez, Pastora del Ministerio Internacional Generación de Poder, guía a las mujeres y ministración. Es parte activa en la enseñanza y coordinación de actividades comunitarias.'
     },
     en:{
-      'nav.home':'Home','nav.about':'About','nav.gallery':'Gallery','nav.videos':'Videos','nav.events':'Events','nav.location':'Location','nav.contact':'Contact',
+      'events.title':'Eventos','events.subtitle':'Consulta los próximos eventos y el calendario de actividades.',
       'hero.title':'Welcome to Ministerio Internacional Generación de Poder','hero.subtitle':'Church in Tamacá, Zona Norte — Barquisimeto, Lara, Venezuela','hero.ctaPhotos':'View Photos','hero.ctaLocation':'Get directions',
       'gallery.title':'Photo Gallery','gallery.subtitle':'Tap any image to view it large.',
       'videos.title':'Videos','videos.subtitle':'Check out our messages and special moments.',
       'events.title':'Events','events.subtitle':'See upcoming events and the activity calendar.',
+        'events.next.loading':'Loading next event...','events.next.empty':'No upcoming events.','events.next.label':'Next event',
       'events.next.loading':'Loading next event...','events.next.empty':'No upcoming events.','events.next.label':'Next event',
       'contact.title':'Contact','contact.subtitle':'Questions or want to join? Write to us.',
       'about.p1':'Ministerio Internacional Generación de Poder is under the covering of Pastor Gisela Bracho (El Rey Jesús Punto Fijo).',
@@ -188,47 +189,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     inner.style.maxHeight = `calc(100vh - ${hh}px)`;
     inner.style.overflowY = 'auto';
   }
-  layoutMobileOverlay();
-  window.addEventListener('resize', layoutMobileOverlay, {passive:true});
-
-  // wire overlay open/close to toggles
-  function openMobileOverlay(){
-    // ensure header remains visible when menu opens
-    if(headerEl) headerEl.classList.remove('hidden');
-    layoutMobileOverlay();
-    mobileOverlay.classList.add('open');
-    // sync toggle button state
-    if(navToggle){ navToggle.classList.add('open'); navToggle.setAttribute('aria-expanded','true'); }
-    const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
-    const total = links.length;
-    links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
-    // trigger letter animations for overlay links
-    mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.add('in-view'));
-    const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
-  }
-  function closeMobileOverlay(){
-    // remove letter animation class first (for smoother reverse animation)
-    mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.remove('in-view'));
-    mobileOverlay.classList.remove('open');
-    // sync toggle button state and aria
-    if(navToggle){ navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); navToggle.focus(); }
-  }
-  // (removed redundant click handler that forced mobile overlay open)
-  // listen to pointer and click events on close button for better mobile compatibility
-  // (inner close button removed)
-  // close on ESC
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ if(mobileOverlay.classList.contains('open')) closeMobileOverlay(); } });
-  // debug: log overlay pointer interactions
-  mobileOverlay.addEventListener('pointerdown', (e)=>{
-    if(e.target === mobileOverlay){
-      e.preventDefault();
-      e.stopPropagation();
-      closeMobileOverlay();
-      lastToggleAction = 'close';
-      lastToggleAt = Date.now();
-      blockNavToggleUntil = Date.now() + 600;
-    }
-  });
   mobileOverlay.addEventListener('click', (e)=>{
     if(e.target === mobileOverlay){
       closeMobileOverlay();
@@ -720,7 +680,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     applyI18n(lang);
   }
-
   function renderCalendar(date){
     calendarEl.innerHTML = '';
     renderWeekdays();
