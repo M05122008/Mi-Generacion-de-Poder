@@ -315,7 +315,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // --- Calendar / Events (with localStorage + admin) ---
   // Firebase integration helpers (if Firebase is configured)
   const isFirebaseReady = typeof window._FIREBASE !== 'undefined' && window._FIREBASE.db;
+  const ADMIN_EMAILS = (window._ADMIN_EMAILS || []).map(e=> (e||'').toLowerCase());
   let isAdmin = false;
+  const serverTimestamp = (window.firebase && window.firebase.firestore && window.firebase.firestore.FieldValue && window.firebase.firestore.FieldValue.serverTimestamp) ? window.firebase.firestore.FieldValue.serverTimestamp : null;
 
   async function subscribeEventsAndRender() {
     if(!isFirebaseReady) return;
@@ -341,6 +343,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }
       });
     }catch(e){ console.error('Firebase events listen setup error', e); }
+  }
+
+  async function ensureUserProfile(user){
+    if(!isFirebaseReady || !user || !window._FIREBASE.db) return;
+    try{
+      const db = window._FIREBASE.db;
+      const ref = db.collection('userRoles').doc(user.uid);
+      const snap = await ref.get();
+      const data = {
+        email: user.email || '',
+        displayName: user.displayName || '',
+        updatedAt: serverTimestamp ? serverTimestamp() : new Date(),
+      };
+      if(!snap.exists) data.role = 'client';
+      await ref.set(data, { merge: true });
+    }catch(err){ console.warn('ensureUserProfile error', err); }
+  }
+
+  async function fetchUserRole(user){
+    if(!isFirebaseReady || !user || !window._FIREBASE.db) return null;
+    try{
+      const snap = await window._FIREBASE.db.collection('userRoles').doc(user.uid).get();
+      if(snap.exists) return snap.data().role || null;
+    }catch(err){ console.warn('fetchUserRole error', err); }
+    return null;
   }
 
   async function adminCreateEventFirebase(dateISO, title, time, description, file){
@@ -396,11 +423,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(user){
         // force token refresh to pick up custom claims set via admin script
         const token = await user.getIdTokenResult(true);
-        isAdmin = token.claims && token.claims.admin === true;
+        const email = (user.email||'').toLowerCase();
+        await ensureUserProfile(user);
+        const roleFromDb = await fetchUserRole(user);
+        isAdmin = roleFromDb === 'admin' || (token.claims && token.claims.admin === true) || ADMIN_EMAILS.includes(email);
         const adminLogoutBtn = document.getElementById('btnAdminLogout');
         const adminLoginBtn = document.getElementById('btnAdminLogin');
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
         if(adminLogoutBtn) adminLogoutBtn.style.display = 'inline-block';
         if(adminLoginBtn) adminLoginBtn.style.display = 'none';
+        if(adminPanelBtn) adminPanelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
         // header popover controls (if present)
         const hbOut = document.getElementById('headerBtnLogout');
         const hbIn = document.getElementById('headerBtnLogin');
@@ -421,8 +453,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
         isAdmin = false;
         const adminLogoutBtn = document.getElementById('btnAdminLogout');
         const adminLoginBtn = document.getElementById('btnAdminLogin');
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
         if(adminLogoutBtn) adminLogoutBtn.style.display = 'none';
         if(adminLoginBtn) adminLoginBtn.style.display = 'inline-block';
+        if(adminPanelBtn) adminPanelBtn.style.display = 'none';
         const hbOut = document.getElementById('headerBtnLogout');
         const hbIn = document.getElementById('headerBtnLogin');
         if(hbOut) hbOut.style.display = 'none';
@@ -468,9 +502,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if(!user) return alert('No hay usuario autenticado');
         await user.getIdTokenResult(true); // force refresh
         const token = await user.getIdTokenResult();
-        isAdmin = token.claims && token.claims.admin === true;
+        const email = (window._FIREBASE.auth.currentUser?.email||'').toLowerCase();
+        const roleFromDb = await fetchUserRole(user);
+        isAdmin = roleFromDb === 'admin' || (token.claims && token.claims.admin === true) || ADMIN_EMAILS.includes(email);
         const hStatus = document.getElementById('headerAdminStatus');
         if(hStatus) hStatus.textContent = isAdmin ? 'Administrador' : 'No administrador';
+        const adminPanelBtn = document.getElementById('adminPanelBtn');
+        if(adminPanelBtn) adminPanelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
         if(isAdmin && eventAdmin){ eventAdmin.removeAttribute('hidden'); renderAdminList(); }
         alert('Claims actualizados. Estado: ' + (isAdmin ? 'Administrador' : 'No administrador'));
       }catch(err){ console.error(err); alert('Error actualizando claims: '+(err.message||err)); }
