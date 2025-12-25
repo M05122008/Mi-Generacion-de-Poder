@@ -30,7 +30,7 @@
                     <p class="auth-subtitle">Accede para gestionar eventos y contenido.</p>
                 </header>
 
-                <form class="auth-form" action="/login" method="post">
+                <form class="auth-form" id="emailLoginForm" action="#" method="post">
                     <label for="username">Correo o usuario</label>
                     <input type="text" id="username" name="username" placeholder="correo@ejemplo.com" required>
 
@@ -61,6 +61,9 @@
         <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
         <script>
+            // Opcional: añade aquí los correos que deben considerarse administradores si aún no tienes custom claims.
+            window._ADMIN_EMAILS = ['migeneraciondepoder@gmail.com'];
+
             const firebaseConfig = {
                 apiKey: "AIzaSyC77-Yyvo2Bi1L6BEP9qqDbIJs--YdgKn4",
                 authDomain: "migeneraciondepoder-75d84.firebaseapp.com",
@@ -97,6 +100,33 @@
                 }).catch(err=>{
                     showStatus('Error: ' + (err.message||err), 'error');
                     console.error(err);
+                });
+            }
+
+            // Email/password login handled client-side to avoid 405 on static hosting
+            const emailForm = document.getElementById('emailLoginForm');
+            if(emailForm){
+                emailForm.addEventListener('submit', async (e)=>{
+                    e.preventDefault();
+                    if(!isSupportedEnv){
+                        showStatus('Error: abre la página en http/https (no file://) para usar el login.', 'error');
+                        return;
+                    }
+                    const email = document.getElementById('username')?.value || '';
+                    const pass = document.getElementById('password')?.value || '';
+                    if(!email || !pass){
+                        showStatus('Por favor ingresa correo y contraseña.', 'error');
+                        return;
+                    }
+                    showStatus('Ingresando...', 'info');
+                    try{
+                        await auth.signInWithEmailAndPassword(email, pass);
+                        showStatus('Ingresado.', 'success');
+                        setTimeout(()=> window.location.href = 'index.html#events', 400);
+                    }catch(err){
+                        showStatus('Error: ' + (err.message||err), 'error');
+                        console.error(err);
+                    }
                 });
             }
 
