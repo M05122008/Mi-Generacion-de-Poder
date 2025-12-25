@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Inicia Sesión | MIGP</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+        <div class="background">
+                <div class="shape"></div>
+                <div class="shape"></div>
+        </div>
+
+        <main class="auth-page">
+            <div class="auth-card">
+                <div class="auth-brand">
+                    <a href="index.html" aria-label="Volver al inicio">
+                        <img src="assets/logo-white.png" alt="MIGP" class="brand-logo" loading="lazy">
+                        <span class="brand-name">Mi Generación de Poder</span>
+                    </a>
+                </div>
+
+                <header class="auth-header">
+                    <p class="auth-kicker">Panel Administrativo</p>
+                    <h1>Inicia sesión</h1>
+                    <p class="auth-subtitle">Accede para gestionar eventos y contenido.</p>
+                </header>
+
+                <form class="auth-form" action="/login" method="post">
+                    <label for="username">Correo o usuario</label>
+                    <input type="text" id="username" name="username" placeholder="correo@ejemplo.com" required>
+
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Ingresar</button>
+                    </div>
+                </form>
+
+                <div class="social-login">
+                    <div class="divider"><span>o continúa con</span></div>
+                    <button type="button" id="googleLoginBtn" class="btn-google">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="20" height="20" loading="lazy">
+                        <span>Iniciar sesión con Google</span>
+                    </button>
+                    <div id="authStatus" class="auth-status" aria-live="polite" hidden></div>
+                </div>
+
+                <div class="auth-links">
+                    <a href="index.html">← Volver a inicio</a>
+                </div>
+            </div>
+        </main>
+
+        <!-- Firebase compat SDKs + init (reuse same config as sitio) -->
+        <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+        <script>
+            const firebaseConfig = {
+                apiKey: "AIzaSyC77-Yyvo2Bi1L6BEP9qqDbIJs--YdgKn4",
+                authDomain: "migeneraciondepoder-75d84.firebaseapp.com",
+                projectId: "migeneraciondepoder-75d84",
+                storageBucket: "migeneraciondepoder-75d84.firebasestorage.app",
+                messagingSenderId: "600928815158",
+                appId: "1:600928815158:web:4a81b8c2782f676c697097",
+                measurementId: "G-WYSQ5PRV51"
+            };
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+
+            const statusEl = document.getElementById('authStatus');
+            function showStatus(msg, type){
+                if(!statusEl) return;
+                statusEl.textContent = msg;
+                statusEl.className = 'auth-status ' + (type||'info');
+                statusEl.hidden = false;
+            }
+
+            const supportedProtocols = ['http:', 'https:', 'chrome-extension:'];
+            const isSupportedEnv = supportedProtocols.includes(window.location.protocol);
+            if(!isSupportedEnv){
+                showStatus('Error: esta página debe abrirse vía HTTP/HTTPS para usar Google. Sube el sitio o usa un servidor local.', 'error');
+            }
+
+            // handle redirect results (in case popup is blocked or protocol not allowed)
+            if(isSupportedEnv){
+                auth.getRedirectResult().then(result=>{
+                    if(result && result.user){
+                        showStatus('Ingresado con Google.', 'success');
+                        setTimeout(()=> window.location.href = 'index.html#events', 400);
+                    }
+                }).catch(err=>{
+                    showStatus('Error: ' + (err.message||err), 'error');
+                    console.error(err);
+                });
+            }
+
+            const googleBtn = document.getElementById('googleLoginBtn');
+            if(googleBtn){
+                googleBtn.addEventListener('click', async ()=>{
+                    if(!isSupportedEnv){
+                        showStatus('Error: abre la página en http/https (no file://) para usar Google.', 'error');
+                        return;
+                    }
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    try{
+                        // Try popup first (works in https). If blocked/unsupported, fallback to redirect.
+                        await auth.signInWithPopup(provider);
+                        showStatus('Ingresado con Google.', 'success');
+                        setTimeout(()=> window.location.href = 'index.html#events', 400);
+                    }catch(err){
+                        console.warn('Popup failed, trying redirect...', err);
+                        try{
+                            await auth.signInWithRedirect(provider);
+                            showStatus('Redirigiendo a Google...', 'info');
+                        }catch(err2){
+                            showStatus('Error: ' + (err2.message||err2), 'error');
+                            console.error(err2);
+                        }
+                    }
+                });
+            }
+        </script>
+</body>
+</html>
