@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Roles | MIGP</title>
+  <link rel="stylesheet" href="admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <main>
+    <div class="header">
+      <a class="brand" href="index.html">
+        <img src="assets/logo-white.png" alt="MIGP" loading="lazy"> Mi Generación de Poder
+      </a>
+      <div class="actions">
+        <a id="loginLink" class="btn ghost" href="login.html">Iniciar sesión</a>
+        <button id="btnLogout" class="btn ghost" style="display:none">Cerrar sesión</button>
+        <button id="btnReload" class="btn ghost" title="Refrescar token" aria-label="Refrescar">⟳</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="status">
+        <span class="badge info" id="status">Cargando estado...</span>
+        <span class="badge info">Usuario: <strong id="userEmail">—</strong></span>
+        <span class="badge info">Rol: <strong id="userRole">—</strong></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Nombre</th>
+              <th>Rol</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="userTable">
+            <tr><td colspan="4" class="empty">Cargando usuarios...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="footer-note">Solo los usuarios con claim <strong>admin</strong> pueden cambiar roles. Los demás solo verán su propio estado.</p>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="admin.js" defer></script>
+</body>
+</html>

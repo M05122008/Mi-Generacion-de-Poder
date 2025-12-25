@@ -60,6 +60,7 @@
         <!-- Firebase compat SDKs + init (reuse same config as sitio) -->
         <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
         <script>
             // Opcional: añade aquí los correos que deben considerarse administradores si aún no tienes custom claims.
             window._ADMIN_EMAILS = ['migeneraciondepoder@gmail.com'];
@@ -75,6 +76,23 @@
             };
             firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
+            const db = firebase.firestore();
+
+            async function upsertProfile(user){
+                if(!user || !db) return;
+                try{
+                    const ref = db.collection('userRoles').doc(user.uid);
+                    const snap = await ref.get();
+                    const data = {
+                        email: user.email || '',
+                        displayName: user.displayName || '',
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    if(!snap.exists) data.role = 'client';
+                    if(!snap.exists) data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await ref.set(data, { merge: true });
+                }catch(err){ console.warn('No se pudo guardar el perfil', err); }
+            }
 
             const statusEl = document.getElementById('authStatus');
             function showStatus(msg, type){
@@ -94,6 +112,7 @@
             if(isSupportedEnv){
                 auth.getRedirectResult().then(result=>{
                     if(result && result.user){
+                        upsertProfile(result.user);
                         showStatus('Ingresado con Google.', 'success');
                         setTimeout(()=> window.location.href = 'index.html#events', 400);
                     }
@@ -121,6 +140,7 @@
                     showStatus('Ingresando...', 'info');
                     try{
                         await auth.signInWithEmailAndPassword(email, pass);
+                        await upsertProfile(auth.currentUser);
                         showStatus('Ingresado.', 'success');
                         setTimeout(()=> window.location.href = 'index.html#events', 400);
                     }catch(err){
@@ -141,6 +161,7 @@
                     try{
                         // Try popup first (works in https). If blocked/unsupported, fallback to redirect.
                         await auth.signInWithPopup(provider);
+                        await upsertProfile(auth.currentUser);
                         showStatus('Ingresado con Google.', 'success');
                         setTimeout(()=> window.location.href = 'index.html#events', 400);
                     }catch(err){
