@@ -1,4 +1,55 @@
 document.addEventListener('DOMContentLoaded', ()=>{
+  // Lightweight i18n (ES/EN)
+  const i18nStrings = {
+    es:{
+      'nav.home':'Inicio','nav.about':'Sobre','nav.gallery':'Galería','nav.videos':'Videos','nav.events':'Eventos','nav.location':'Ubicación','nav.contact':'Contacto',
+      'hero.title':'Bienvenidos a Ministerio Internacional Generación de Poder','hero.subtitle':'Iglesia en Tamacá, Zona Norte — Barquisimeto, Lara, Venezuela','hero.ctaPhotos':'Ver Fotos','hero.ctaLocation':'Cómo llegar',
+      'gallery.title':'Galería de Fotos','gallery.subtitle':'Haz click en una imagen para verla en grande.',
+      'videos.title':'Videos','videos.subtitle':'Revisa algunos de nuestros mensajes y momentos especiales.',
+      'events.title':'Eventos','events.subtitle':'Consulta los próximos eventos y el calendario de actividades.',
+      'events.next.loading':'Cargando próximo evento...','events.next.empty':'Sin eventos futuros.','events.next.label':'Próximo evento',
+      'contact.title':'Contacto','contact.subtitle':'¿Tienes preguntas o quieres unirte? Escríbenos.',
+      'about.p1':'El Ministerio Internacional Generación de Poder es un Ministerio Bajo la Cobertura de la Pastora Gisela Bracho El Rey Jesus Punto Fijo.',
+      'about.p2':'La Mision de MIGP es una Iglesia  Apostólica y Profetica que Creemos en el Poder y la Manifestacion del Espíritu Santo.',
+      'about.p3':'La Vision de MIGP es Evangelizar, Afirmar, Discipular y Enviar.',
+      'pastors.title':'Pastores Principales','pastors.subtitle':'Conoce a nuestros pastores principales.',
+      'pastors.edgar':'Pastor Edgar Jimenez, Pastor Principal del Ministerio Internacional Generación de Poder, con una trayectoria de servicio, predicación y formación de líderes. Su visión es ver transformada la comunidad a través de la palabra y el discipulado.',
+      'pastors.sarahi':'Pastora Sarahi de Jimenez, Pastora del Ministerio Internacional Generación de Poder, guía a las mujeres y ministración. Es parte activa en la enseñanza y coordinación de actividades comunitarias.'
+    },
+    en:{
+      'nav.home':'Home','nav.about':'About','nav.gallery':'Gallery','nav.videos':'Videos','nav.events':'Events','nav.location':'Location','nav.contact':'Contact',
+      'hero.title':'Welcome to Ministerio Internacional Generación de Poder','hero.subtitle':'Church in Tamacá, Zona Norte — Barquisimeto, Lara, Venezuela','hero.ctaPhotos':'View Photos','hero.ctaLocation':'Get directions',
+      'gallery.title':'Photo Gallery','gallery.subtitle':'Tap any image to view it large.',
+      'videos.title':'Videos','videos.subtitle':'Check out our messages and special moments.',
+      'events.title':'Events','events.subtitle':'See upcoming events and the activity calendar.',
+      'events.next.loading':'Loading next event...','events.next.empty':'No upcoming events.','events.next.label':'Next event',
+      'contact.title':'Contact','contact.subtitle':'Questions or want to join? Write to us.',
+      'about.p1':'Ministerio Internacional Generación de Poder is under the covering of Pastor Gisela Bracho (El Rey Jesús Punto Fijo).',
+      'about.p2':'Our mission is apostolic and prophetic; we believe in the Power and manifestation of the Holy Spirit.',
+      'about.p3':'Our vision is to Evangelize, Affirm, Disciple, and Send.',
+      'pastors.title':'Lead Pastors','pastors.subtitle':'Meet our lead pastors.',
+      'pastors.edgar':'Pastor Edgar Jimenez leads MIGP with a heart for teaching, discipleship, and community transformation.',
+      'pastors.sarahi':'Pastor Sarahi de Jimenez focuses on women, families, and ministry, actively teaching and coordinating community activities.'
+    }
+  };
+  function applyI18n(lang){
+    const dict = i18nStrings[lang] || i18nStrings.es;
+    document.querySelectorAll('[data-i18n]').forEach(el=>{
+      const key = el.getAttribute('data-i18n');
+      if(dict[key]) el.textContent = dict[key];
+    });
+    const toggle = document.getElementById('langToggle');
+    if(toggle) toggle.textContent = lang === 'en' ? 'ES' : 'EN';
+    document.documentElement.lang = lang === 'en' ? 'en' : 'es';
+    localStorage.setItem('siteLang', lang);
+  }
+  const savedLang = localStorage.getItem('siteLang') || 'es';
+  applyI18n(savedLang);
+  document.getElementById('langToggle')?.addEventListener('click', ()=>{
+    const next = (localStorage.getItem('siteLang') || 'es') === 'es' ? 'en' : 'es';
+    applyI18n(next);
+  });
+
   // Año en footer
   const yearEl = document.getElementById('year');
   if(yearEl) yearEl.textContent = new Date().getFullYear();
@@ -17,29 +68,51 @@ document.addEventListener('DOMContentLoaded', ()=>{
     navToggle.appendChild(burger);
   }
 
-  function handleNavToggle(ev){
-    // unify open/close behavior so the animated X always performs the close action
-    // prevent double-trigger on touch devices (click + pointerdown)
-    if(handleNavToggle._last && (Date.now() - handleNavToggle._last) < 300){
-      ev && ev.preventDefault && ev.preventDefault();
-      return;
-    }
-    handleNavToggle._last = Date.now();
+  let navToggleLock = false;
+  let lastToggleAt = 0;
+  let lastToggleAction = '';
+  let blockNavToggleUntil = 0;
+  function runNavToggle(ev){
+    ev?.preventDefault?.();
+    ev?.stopPropagation?.();
+    const now = Date.now();
+    if(now < blockNavToggleUntil){ return; }
     const isMobile = window.innerWidth <= 900;
     const isOpen = mobileOverlay.classList.contains('open');
+
+    // if just closed on mobile, ignore immediate reopen
+    if(isMobile && !isOpen && lastToggleAction === 'close' && (now - lastToggleAt) < 650){
+      return;
+    }
+
+    // If we just closed, ignore an immediate reopen caused by the same tap
+    if(isMobile && !isOpen && lastToggleAction === 'close' && (now - lastToggleAt) < 450){
+      return;
+    }
+    // lock to avoid double toggles on fast repeated taps
+    if(navToggleLock){ return; }
+    navToggleLock = true; setTimeout(()=> navToggleLock = false, 380);
+
     if(isMobile){
       if(isOpen){
         closeMobileOverlay();
+        lastToggleAction = 'close';
       } else {
         openMobileOverlay();
+        lastToggleAction = 'open';
       }
     } else {
       const newVal = navEl?.classList.toggle('open');
       if(navToggle) navToggle.setAttribute('aria-expanded', newVal ? 'true' : 'false');
+      lastToggleAction = newVal ? 'open' : 'close';
     }
+    lastToggleAt = now;
   }
-  navToggle?.addEventListener('click', handleNavToggle);
-  // remove pointerdown to avoid double toggling on mobile/touch
+  // Use click only; rely on mobile synthesized click to avoid double toggles
+  navToggle?.addEventListener('click', (ev)=>{
+    ev.stopImmediatePropagation?.();
+    runNavToggle(ev);
+  });
 
   // header shrink + hide/show on scroll
   const headerEl = document.querySelector('.site-header');
@@ -146,8 +219,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // close on ESC
   document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ if(mobileOverlay.classList.contains('open')) closeMobileOverlay(); } });
   // debug: log overlay pointer interactions
-  mobileOverlay.addEventListener('pointerdown', (e)=>{ if(e.target === mobileOverlay) closeMobileOverlay(); });
-  mobileOverlay.addEventListener('click', (e)=>{ if(e.target === mobileOverlay) closeMobileOverlay(); });
+  mobileOverlay.addEventListener('pointerdown', (e)=>{
+    if(e.target === mobileOverlay){
+      e.preventDefault();
+      e.stopPropagation();
+      closeMobileOverlay();
+      lastToggleAction = 'close';
+      lastToggleAt = Date.now();
+      blockNavToggleUntil = Date.now() + 600;
+    }
+  });
+  mobileOverlay.addEventListener('click', (e)=>{
+    if(e.target === mobileOverlay){
+      closeMobileOverlay();
+      lastToggleAction = 'close';
+      lastToggleAt = Date.now();
+      blockNavToggleUntil = Date.now() + 600; // prevent next synthetic click from reopening
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
   // Close nav when a link is clicked and perform smooth-scroll for hash links
   document.querySelectorAll('.site-nav a').forEach(a=>{
     a.addEventListener('click', (e)=>{
@@ -337,6 +428,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         });
         renderCalendar(currentDate);
         renderAdminList();
+        renderNextEvent();
       }, err => {
         console.warn('Firestore onSnapshot error:', err);
         // If permission denied, fallback to localStorage events and notify admin to fix rules
@@ -345,6 +437,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           events = loadEvents();
           renderCalendar(currentDate);
           renderAdminList();
+          renderNextEvent();
         }
       });
     }catch(e){ console.error('Firebase events listen setup error', e); }
@@ -403,6 +496,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         saveEvents();
         renderCalendar(currentDate);
         renderAdminList();
+        renderNextEvent();
         alert('Evento creado en local (sin Firebase)');
       }
     }catch(err){ console.error(err); alert('Error creando evento: '+err.message); }
@@ -591,6 +685,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
+  function renderNextEvent(){
+    const card = document.getElementById('nextEventCard');
+    const hero = document.getElementById('heroNextEvent');
+    if(!card && !hero) return;
+    const lang = localStorage.getItem('siteLang') || 'es';
+    const nowIso = new Date().toISOString().slice(0,10);
+    const upcoming = events
+      .filter(ev=> ev.date && ev.date >= nowIso)
+      .sort((a,b)=> (a.date + (a.time||'')) < (b.date + (b.time||'')) ? -1 : 1);
+    if(!upcoming.length){
+      if(card) card.innerHTML = `<div class="muted" data-i18n="events.next.empty">Sin eventos futuros.</div>`;
+      if(hero){ hero.innerHTML = ''; hero.setAttribute('aria-hidden','true'); }
+      applyI18n(lang);
+      return;
+    }
+    const ev = upcoming[0];
+    const dateStr = new Date(ev.date).toLocaleDateString(lang==='en'?'en-US':'es-ES',{weekday:'long', month:'long', day:'numeric'});
+    if(card){
+      card.innerHTML = `
+        <div class="next-event-header" data-i18n="events.next.label">Próximo evento</div>
+        <div class="next-event-body">
+          <div class="next-event-title">${ev.title || ''}</div>
+          <div class="next-event-meta">${dateStr}${ev.time ? ' — ' + ev.time : ''}</div>
+          ${ev.description ? `<div class="muted">${ev.description}</div>` : ''}
+        </div>`;
+    }
+    if(hero){
+      hero.innerHTML = `
+        <span class="label" data-i18n="events.next.label">Próximo evento</span>
+        <span class="title">${ev.title || ''}</span>
+        <span class="meta">${dateStr}${ev.time ? ' — ' + ev.time : ''}</span>`;
+      hero.removeAttribute('aria-hidden');
+    }
+    applyI18n(lang);
+  }
+
   function renderCalendar(date){
     calendarEl.innerHTML = '';
     renderWeekdays();
@@ -768,6 +898,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       saveEvents();
       renderCalendar(currentDate);
       renderAdminList();
+      renderNextEvent();
       eventForm.reset();
       eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
     }
@@ -779,7 +910,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   nextBtn?.addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(currentDate); });
 
   // init
-  if(calendarEl){ renderCalendar(currentDate); eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>'; }
+  if(calendarEl){ renderCalendar(currentDate); eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>'; renderNextEvent(); }
   // hookup admin buttons if present
   document.getElementById('btnAdminLogin')?.addEventListener('click', ()=>{
     const e = document.getElementById('adminEmail').value;

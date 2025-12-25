@@ -76,6 +76,7 @@
                 </script>
 </head>
 <body>
+<a class="skip-link" href="#mainContent">Saltar al contenido principal</a>
 <header class="site-header">
     <div class="container header-inner header--elrey">
         <div class="header-left">
@@ -85,72 +86,68 @@
         </div>
         <div class="header-center">
             <nav class="site-nav" role="navigation">
-                <a href="index.html">Inicio</a>
-                <a href="#Sobre">Sobre</a>
-                <a href="#gallery">Galería</a>
-                <a href="#videos">Videos</a>
-                <a href="#events">Eventos</a>
-                <a href="#location">Ubicación</a>
-                <a href="#contact">Contacto</a>
+                <a href="index.html" data-i18n="nav.home">Inicio</a>
+                <a href="#Sobre" data-i18n="nav.about">Sobre</a>
+                <a href="#gallery" data-i18n="nav.gallery">Galería</a>
+                <a href="#videos" data-i18n="nav.videos">Videos</a>
+                <a href="#events" data-i18n="nav.events">Eventos</a>
+                <a href="#location" data-i18n="nav.location">Ubicación</a>
+                <a href="#contact" data-i18n="nav.contact">Contacto</a>
             </nav>
         </div>
         <div class="header-right">
             <a class="instagram" href="https://www.instagram.com/migeneraciondepoder/" target="_blank" rel="noopener">Instagram</a>
+            <button id="langToggle" class="btn ghost" type="button" aria-label="Cambiar idioma">EN</button>
             <button class="nav-toggle" aria-label="Abrir menú">☰</button>
         </div>
     </div>
 </header>
 
-<main>
+<main id="mainContent">
     <section class="hero">
         <!-- Banner slideshow: usa imágenes en assets/ -->
         <div class="banner" id="banner" aria-hidden="false">
-            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio MIGP" loading="lazy" class="banner-slide active">
-            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto MIGP" loading="lazy" class="banner-slide">
-            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto MIGP" loading="lazy" class="banner-slide">
-            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado MIGP" loading="lazy" class="banner-slide">
+            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio MIGP" loading="eager" fetchpriority="high" decoding="async" class="banner-slide active" sizes="100vw" srcset="assets/IMG-20250517-WA0034.jpg 1400w">
+            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto MIGP" loading="lazy" decoding="async" class="banner-slide" sizes="100vw" srcset="assets/IMG-20251019-WA0228.jpg 1400w">
+            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto MIGP" loading="lazy" decoding="async" class="banner-slide" sizes="100vw" srcset="assets/IMG-20251014-WA0137.jpg 1400w">
+            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado MIGP" loading="lazy" decoding="async" class="banner-slide" sizes="100vw" srcset="assets/IMG-20251027-WA0123.jpg 1400w">
         </div>
         <div class="hero-overlay"></div>
         <div class="container hero-content">
-            <h2>Bienvenidos a Ministerio Internacional Generación de Poder</h2>
-            <p>Iglesia en Tamacá, Zona Norte — Barquisimeto, Lara, Venezuela</p>
+            <h2 data-i18n="hero.title">Bienvenidos a Ministerio Internacional Generación de Poder</h2>
+            <p data-i18n="hero.subtitle">Iglesia en Tamacá, Zona Norte — Barquisimeto, Lara, Venezuela</p>
             <div class="hero-cta">
-                <a class="btn" href="#gallery">Ver Fotos</a>
-                <a class="btn ghost" href="#location">Cómo llegar</a>
+                <a class="btn" href="#gallery" data-i18n="hero.ctaPhotos">Ver Fotos</a>
+                <a class="btn ghost" href="#location" data-i18n="hero.ctaLocation">Cómo llegar</a>
             </div>
+            <div id="heroNextEvent" class="hero-next-event" aria-live="polite"></div>
         </div>
     </section>
 
     <section id="Sobre" class="section container">
         <h3 class="animate-title">Sobre Nosotros</h3>
-        <p>
-            El Ministerio Internacional Generación de Poder es un Ministerio Bajo la Cobertura de la Pastora Gisela Bracho El Rey Jesus Punto Fijo.
-        </p>
-        <p>
-            La Mision de MIGP es una Iglesia  Apostólica y Profetica que Creemos en el Poder y la Manifestacion del Espíritu Santo.
-        </p>
-        <p>
-            La Vision de MIGP es Evangelizar, Afirmar, Discipular y Enviar.
-        </p>
+        <p data-i18n="about.p1">El Ministerio Internacional Generación de Poder es un Ministerio Bajo la Cobertura de la Pastora Gisela Bracho El Rey Jesus Punto Fijo.</p>
+        <p data-i18n="about.p2">La Mision de MIGP es una Iglesia  Apostólica y Profetica que Creemos en el Poder y la Manifestacion del Espíritu Santo.</p>
+        <p data-i18n="about.p3">La Vision de MIGP es Evangelizar, Afirmar, Discipular y Enviar.</p>
 
     </section>
 
     <section id="gallery" class="section container">
-        <h3>Galería de Fotos</h3>
-        <p class="muted">Haz click en una imagen para verla en grande.</p>
+        <h3 data-i18n="gallery.title">Galería de Fotos</h3>
+        <p class="muted" data-i18n="gallery.subtitle">Haz click en una imagen para verla en grande.</p>
         <div class="grid gallery-grid">
-            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio" data-type="image" loading="lazy">
-            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto" data-type="image" loading="lazy">
-            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto" data-type="image" loading="lazy">
-            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado" data-type="image" loading="lazy">
-            <img src="assets/IMG-20251109-WA0364.jpg" alt="Predicación" data-type="image" loading="lazy">
-            <img src="assets/IMG-20251108-WA0046.jpg" alt="Jóvenes" data-type="image" loading="lazy">
+            <img src="assets/IMG-20250517-WA0034.jpg" alt="Servicio" data-type="image" loading="lazy" decoding="async" sizes="(max-width:900px) 50vw, 33vw" srcset="assets/IMG-20250517-WA0034.jpg 1200w">
+            <img src="assets/IMG-20251019-WA0228.jpg" alt="Culto" data-type="image" loading="lazy" decoding="async" sizes="(max-width:900px) 50vw, 33vw" srcset="assets/IMG-20251019-WA0228.jpg 1200w">
+            <img src="assets/IMG-20251014-WA0137.jpg" alt="Culto" data-type="image" loading="lazy" decoding="async" sizes="(max-width:900px) 50vw, 33vw" srcset="assets/IMG-20251014-WA0137.jpg 1200w">
+            <img src="assets/IMG-20251027-WA0123.jpg" alt="Llamado" data-type="image" loading="lazy" decoding="async" sizes="(max-width:900px) 50vw, 33vw" srcset="assets/IMG-20251027-WA0123.jpg 1200w">
+            <img src="assets/IMG-20251109-WA0364.jpg" alt="Predicación" data-type="image" loading="lazy" decoding="async" sizes="(max-width:900px) 50vw, 33vw" srcset="assets/IMG-20251109-WA0364.jpg 1200w">
+            <img src="assets/IMG-20251108-WA0046.jpg" alt="Jóvenes" data-type="image" loading="lazy" decoding="async" sizes="(max-width:900px) 50vw, 33vw" srcset="assets/IMG-20251108-WA0046.jpg 1200w">
         </div>
     </section>
 
     <section id="videos" class="section container">
-        <h3>Videos</h3>
-        <p class="muted">Revisa algunos de nuestros mensajes y momentos especiales.</p>
+        <h3 data-i18n="videos.title">Videos</h3>
+        <p class="muted" data-i18n="videos.subtitle">Revisa algunos de nuestros mensajes y momentos especiales.</p>
         <div class="grid video-grid">
             <div class="video-card" data-type="video" data-video-id="assets/VID-20251109-WA0867.mp4">
                 <img src="assets/Imagen de WhatsApp 2025-11-15 a las 00.27.26_19966b52.jpg" alt="Adoración - miniatura" loading="lazy">
@@ -166,15 +163,15 @@
     </section>
 
     <section id="pastors" class="section container">
-        <h3>Pastores Principales</h3>
-        <p class="muted">Conoce a nuestros pastores principales.</p>
+        <h3 data-i18n="pastors.title">Pastores Principales</h3>
+        <p class="muted" data-i18n="pastors.subtitle">Conoce a nuestros pastores principales.</p>
         <div class="grid staff-grid">
                         <div class="staff-card animate" data-anim="fade-up">
                             <img src="assets/IMG-20251027-WA0222.jpg" alt="Edgar Jimenez" data-type="image" loading="lazy">
                                 <div class="staff-body">
                                     <h4>Edgar Jimenez</h4>
                                     <div class="role">Pastor Principal</div>
-                                    <p>Pastor Edgar Jimenez lidera el Ministerio Internacional Generación de Poder, con una trayectoria de servicio, predicación y formación de líderes. Su visión es ver transformada la comunidad a través de la palabra y el discipulado.</p>
+                                    <p data-i18n="pastors.edgar">Pastor Edgar Jimenez, Pastor Principal del Ministerio Internacional Generación de Poder, con una trayectoria de servicio, predicación y formación de líderes. Su visión es ver transformada la comunidad a través de la palabra y el discipulado.</p>
                                     <p><a class="ig-link" href="https://www.instagram.com/soyedgarfrancisco/?__pwa=1" target="_blank" rel="noopener"><img src="assets/5968776.png" alt="Instagram" class="social-icon instagram-icon" width="18" height="18" loading="lazy"> @soyedgarfrancisco</a></p>
                                 </div>
                         </div>
@@ -183,7 +180,7 @@
                                 <div class="staff-body">
                                     <h4>Sarahi de Jimenez</h4>
                                     <div class="role">Pastora</div>
-                                    <p>Pastora Sarahi de Jimenez acompaña el ministerio pastoral con enfoque en familias, jóvenes y ministración. Es parte activa en la enseñanza y coordinación de actividades comunitarias.</p>
+                                    <p data-i18n="pastors.sarahi">Pastora Sarahi de Jimenez, Pastora del Ministerio Internacional Generación de Poder, guía a las mujeres y ministración. Es parte activa en la enseñanza y coordinación de actividades comunitarias.</p>
                                     <p><a class="ig-link" href="https://www.instagram.com/sarahidejimenez/?__pwa=1" target="_blank" rel="noopener"><img src="assets/5968776.png" alt="Instagram" class="social-icon instagram-icon" width="18" height="18" loading="lazy"> @sarahidejimenez</a></p>
                                 </div>
                         </div>
@@ -191,8 +188,11 @@
     </section>
 
     <section id="events" class="section container">
-        <h3>Eventos</h3>
-        <p class="muted">Consulta los próximos eventos y el calendario de actividades.</p>
+        <h3 data-i18n="events.title">Eventos</h3>
+        <p class="muted" data-i18n="events.subtitle">Consulta los próximos eventos y el calendario de actividades.</p>
+        <div id="nextEventCard" class="next-event-card" aria-live="polite">
+            <div class="muted" data-i18n="events.next.loading">Cargando próximo evento...</div>
+        </div>
         <div class="events-wrap">
             <div class="calendar-controls">
                 <button id="prevMonth" aria-label="Mes anterior">‹</button>
@@ -206,6 +206,8 @@
                 <div class="inline-login">
                     <a id="headerLogin" class="btn ghost" style="margin-left:.6rem" href="login.html">Iniciar sesión</a>
                     <a id="adminPanelBtn" class="btn" style="margin-left:.6rem;display:none" href="admin.html">Panel admin</a>
+                    <span id="userChip" class="user-chip" style="display:none;margin-left:.6rem"></span>
+                    <button id="btnSignOut" class="btn ghost" style="display:none;margin-left:.6rem">Cerrar sesión</button>
                     <div id="headerLoginPopover" class="header-login-popover" hidden>
                         <div class="popover-inner">
                             <label>Correo<br><input id="headerEmail" type="email" placeholder="tu@email.com"></label>
@@ -262,8 +264,8 @@
     </section>
 
     <section id="contact" class="section container">
-        <h3>Contacto</h3>
-        <p class="muted">¿Tienes preguntas o quieres unirte? Escríbenos.</p>
+        <h3 data-i18n="contact.title">Contacto</h3>
+        <p class="muted" data-i18n="contact.subtitle">¿Tienes preguntas o quieres unirte? Escríbenos.</p>
         <div class="contact-cards">
             <a class="card-spotlight" href="mailto:migeneraciondepoder@gmail.com">
                 <svg class="icon social-icon email-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
