@@ -396,8 +396,8 @@ margin:2rem auto;
   .header-inner{align-items:center}
   .hero-content{padding:2.4rem 1rem;text-align:left}
   .hero-cta{align-items:flex-start}
-  .hero-cta .btn{background:#fff;color:#071122;box-shadow:0 8px 30px rgba(2,6,23,0.12)}
-  .hero-cta .btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06)}
+  .hero-cta .btn{background:#fff ;color:#071122;box-shadow:0 8px 30px rgba(2,6,23,0.12)}
+  .hero-cta .btn.ghost{background:transparent;color:#ffffff;border:1px solid rgba(255,255,255,0.06)}
 
   /* Calendar: single-column, larger days and clearer separators */
   .calendar-grid{grid-template-columns:repeat(4,1fr);gap:8px}
@@ -513,5 +513,5 @@ margin:2rem auto;
   .container.header-inner{padding:0 1rem}
   .hero-content{padding:3rem 1rem}
   /* Hide Instagram in the header on mobile (move inside menu if needed) */
-  .header-right .instagram{display:none}
+  .header-right .instagram{display:inline-block}
 }
