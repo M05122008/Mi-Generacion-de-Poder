@@ -17,7 +17,9 @@ body{
     justify-content:center;
     font-family:'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
     color:#e6eef8;
-    overflow:hidden;
+    padding:1.5rem 1rem;
+    overflow-x:hidden;
+    overflow-y:auto;
 }
 
 .background{
@@ -119,7 +121,9 @@ body{
 .auth-status.info{border-color:rgba(255,255,255,0.12);color:#dbeafe}
 
 @media (max-width:520px){
-    .auth-card{padding:1.35rem 1.1rem}
+    body{align-items:flex-start;padding:1.1rem 0.9rem}
+    .auth-page{padding:0.6rem 0}
+    .auth-card{padding:1.35rem 1.1rem;width:100%}
     .brand-logo{height:36px}
     .auth-header h1{font-size:1.55rem}
 }
