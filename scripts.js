@@ -661,7 +661,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       return;
     }
     const ev = upcoming[0];
-    const dateStr = new Date(ev.date).toLocaleDateString(lang==='en'?'en-US':'es-ES',{weekday:'long', month:'long', day:'numeric'});
+    // Parse as local date to avoid timezone shifting the displayed day
+    const dateObj = new Date(`${ev.date}T00:00:00`);
+    const dateStr = dateObj.toLocaleDateString(lang==='en'?'en-US':'es-ES',{weekday:'long', month:'long', day:'numeric'});
     if(card){
       card.innerHTML = `
         <div class="next-event-header" data-i18n="events.next.label">Próximo evento</div>
