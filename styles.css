@@ -16,6 +16,7 @@ html, body { overflow-x: hidden; }
 .container{max-width:var(--max-width);margin:0 auto;padding:0 1rem}
 a{color:var(--accent);text-decoration:none;transition:color .18s}
 a:hover{color:var(--accent-2)}
+a:focus-visible, button:focus-visible, .btn:focus-visible{outline:2px solid var(--accent-2);outline-offset:3px}
 .site-header{position:fixed;top:0;left:0;right:0;z-index:2200;background:linear-gradient(180deg, rgba(2,6,23,0.08), rgba(2,6,23,0.16));backdrop-filter:blur(6px);border-bottom:1px solid rgba(255,255,255,0.03);padding:.6rem 1rem;height:var(--header-height);transition:transform .28s ease, padding .26s ease-out, box-shadow .26s ease-out}
 .header-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .brand{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:inherit}
