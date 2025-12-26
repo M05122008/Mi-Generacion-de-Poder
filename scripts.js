@@ -70,26 +70,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   let navToggleLock = false;
-  let lastToggleAt = 0;
-  let lastToggleAction = '';
-  let blockNavToggleUntil = 0;
   function runNavToggle(ev){
     ev?.preventDefault?.();
     ev?.stopPropagation?.();
-    const now = Date.now();
-    if(now < blockNavToggleUntil){ return; }
-    const isMobile = window.innerWidth <= 900;
+    const isMobile = window.matchMedia('(max-width: 900px)').matches;
     const isOpen = mobileOverlay.classList.contains('open');
-
-    // if just closed on mobile, ignore immediate reopen
-    if(isMobile && !isOpen && lastToggleAction === 'close' && (now - lastToggleAt) < 650){
-      return;
-    }
-
-    // If we just closed, ignore an immediate reopen caused by the same tap
-    if(isMobile && !isOpen && lastToggleAction === 'close' && (now - lastToggleAt) < 450){
-      return;
-    }
     // lock to avoid double toggles on fast repeated taps
     if(navToggleLock){ return; }
     navToggleLock = true; setTimeout(()=> navToggleLock = false, 380);
@@ -97,17 +82,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(isMobile){
       if(isOpen){
         closeMobileOverlay();
-        lastToggleAction = 'close';
       } else {
         openMobileOverlay();
-        lastToggleAction = 'open';
       }
     } else {
       const newVal = navEl?.classList.toggle('open');
       if(navToggle) navToggle.setAttribute('aria-expanded', newVal ? 'true' : 'false');
-      lastToggleAction = newVal ? 'open' : 'close';
     }
-    lastToggleAt = now;
   }
   // Use click only; rely on mobile synthesized click to avoid double toggles
   navToggle?.addEventListener('click', (ev)=>{
@@ -160,6 +141,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const copy = document.createElement('a');
       copy.href = a.getAttribute('href') || '#';
       copy.textContent = a.textContent || a.href;
+      copy.classList.add('overlay-animate');
       copy.addEventListener('click', (e)=>{
         // smooth scroll if anchor
         const href = copy.getAttribute('href')||'';
@@ -189,12 +171,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
     inner.style.maxHeight = `calc(100vh - ${hh}px)`;
     inner.style.overflowY = 'auto';
   }
+
+  function openMobileOverlay(){
+    if(headerEl) headerEl.classList.remove('hidden');
+    layoutMobileOverlay();
+    mobileOverlay.classList.add('open');
+    if(navToggle){ navToggle.classList.add('open'); navToggle.setAttribute('aria-expanded','true'); }
+    const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
+    const total = links.length;
+    links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
+    mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.add('in-view'));
+    const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
+  }
+
+  function closeMobileOverlay(){
+    mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.remove('in-view'));
+    mobileOverlay.classList.remove('open');
+    if(navToggle){ navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); navToggle.focus(); }
+  }
   mobileOverlay.addEventListener('click', (e)=>{
     if(e.target === mobileOverlay){
       closeMobileOverlay();
-      lastToggleAction = 'close';
-      lastToggleAt = Date.now();
-      blockNavToggleUntil = Date.now() + 600; // prevent next synthetic click from reopening
       e.preventDefault();
       e.stopPropagation();
     }
