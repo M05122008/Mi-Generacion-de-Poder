@@ -1,4 +1,11 @@
 document.addEventListener('DOMContentLoaded', ()=>{
+  const liveRegion = document.getElementById('statusLive');
+  const announce = (msg)=>{
+    if(!liveRegion) return;
+    liveRegion.textContent = '';
+    setTimeout(()=>{ liveRegion.textContent = msg; }, 10);
+  };
+  const notify = (msg)=>{ announce(msg); try{ alert(msg); }catch(e){} };
   // Lightweight i18n (ES/EN)
   const i18nStrings = {
     es:{
@@ -58,7 +65,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Mobile nav toggle
   const navToggle = document.querySelector('.nav-toggle');
   const nav = document.querySelector('.site-nav');
-  if(navToggle) navToggle.setAttribute('aria-expanded','false');
+  if(navToggle){
+    navToggle.setAttribute('aria-expanded','false');
+    navToggle.setAttribute('aria-controls','primaryNav');
+  }
   // fallback: if nav is not found, try alternate container
   const navEl = nav || document.querySelector('.header-center .site-nav') || document.querySelector('.header--elrey .site-nav');
   // Replace the textual burger with a 3-bar burger element for animation
@@ -127,6 +137,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // MOBILE OVERLAY FALLBACK: build a guaranteed mobile menu overlay from existing nav links
   const mobileOverlay = document.createElement('div');
   mobileOverlay.className = 'mobile-nav-overlay';
+  mobileOverlay.setAttribute('aria-hidden','true');
   const inner = document.createElement('div'); inner.className = 'mobile-nav-inner';
   // ensure overlay sits above the header so overlay captures interaction
   try{
@@ -172,22 +183,50 @@ document.addEventListener('DOMContentLoaded', ()=>{
     inner.style.overflowY = 'auto';
   }
 
+  let lastFocus = null;
+  function trapFocus(e){
+    if(e.key !== 'Tab') return;
+    const focusables = inner.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])');
+    if(!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+
+  function onOverlayKeydown(e){
+    if(e.key === 'Escape'){
+      e.preventDefault();
+      closeMobileOverlay();
+    }
+    trapFocus(e);
+  }
+
   function openMobileOverlay(){
     if(headerEl) headerEl.classList.remove('hidden');
     layoutMobileOverlay();
     mobileOverlay.classList.add('open');
+    mobileOverlay.setAttribute('aria-hidden','false');
+    document.body.classList.add('nav-open');
     if(navToggle){ navToggle.classList.add('open'); navToggle.setAttribute('aria-expanded','true'); }
     const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
     const total = links.length;
     links.forEach((lnk, idx)=>{ lnk.style.transitionDelay = ((total - idx - 1) * 65)+'ms'; });
     mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.add('in-view'));
-    const first = mobileOverlay.querySelector('.mobile-nav-inner a'); if(first) first.focus();
+    const first = mobileOverlay.querySelector('.mobile-nav-inner a');
+    lastFocus = document.activeElement;
+    if(first) first.focus();
+    document.addEventListener('keydown', onOverlayKeydown);
   }
 
   function closeMobileOverlay(){
     mobileOverlay.querySelectorAll('.overlay-animate').forEach(lnk=> lnk.classList.remove('in-view'));
     mobileOverlay.classList.remove('open');
-    if(navToggle){ navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); navToggle.focus(); }
+    mobileOverlay.setAttribute('aria-hidden','true');
+    document.body.classList.remove('nav-open');
+    if(navToggle){ navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); }
+    document.removeEventListener('keydown', onOverlayKeydown);
+    if(lastFocus && typeof lastFocus.focus === 'function'){ lastFocus.focus(); }
   }
   mobileOverlay.addEventListener('click', (e)=>{
     if(e.target === mobileOverlay){
@@ -195,6 +234,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       e.preventDefault();
       e.stopPropagation();
     }
+  });
+  mobileOverlay.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){ e.preventDefault(); closeMobileOverlay(); }
   });
   // Close nav when a link is clicked and perform smooth-scroll for hash links
   document.querySelectorAll('.site-nav a').forEach(a=>{
@@ -220,28 +262,65 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const modal = document.getElementById('modal');
   const modalContent = document.getElementById('modalContent');
   const modalClose = document.getElementById('modalClose');
+  const modalPrev = document.getElementById('modalPrev');
+  const modalNext = document.getElementById('modalNext');
+
+  let lastModalFocus = null;
+  let currentMediaList = [];
+  let currentMediaIndex = -1;
+  let currentMediaType = '';
+  const resetMediaNav = ()=>{ currentMediaType=''; currentMediaIndex=-1; };
 
   function openModal(){
-    // pause banner slideshow when modal opens
     if(typeof stopBanner === 'function') stopBanner();
     modal?.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+    lastModalFocus = document.activeElement;
+    const focusable = modal?.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    focusable?.focus();
+    const showNav = currentMediaType === 'image' && currentMediaList.length > 1;
+    if(modalPrev) modalPrev.hidden = !showNav;
+    if(modalNext) modalNext.hidden = !showNav;
   }
   function closeModal(){
     modal?.setAttribute('aria-hidden','true');
+    document.body.classList.remove('modal-open');
     if(modalContent) modalContent.innerHTML = '';
-    // resume banner slideshow when modal closes
     if(typeof startBanner === 'function') startBanner();
+    if(lastModalFocus && typeof lastModalFocus.focus === 'function') lastModalFocus.focus();
   }
   modalClose?.addEventListener('click', closeModal);
   modal?.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
-  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeModal(); });
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==='Escape') return closeModal();
+    if(modal?.getAttribute('aria-hidden') === 'true') return;
+    if(currentMediaType === 'image' && currentMediaList.length){
+      if(e.key === 'ArrowRight'){ e.preventDefault(); showMediaByOffset(1); }
+      if(e.key === 'ArrowLeft'){ e.preventDefault(); showMediaByOffset(-1); }
+    }
+  });
+
+  modalPrev?.addEventListener('click', ()=> showMediaByOffset(-1));
+  modalNext?.addEventListener('click', ()=> showMediaByOffset(1));
+
+  function showMediaByOffset(delta){
+    if(currentMediaIndex < 0) return;
+    currentMediaIndex = (currentMediaIndex + delta + currentMediaList.length) % currentMediaList.length;
+    const item = currentMediaList[currentMediaIndex];
+    if(!item) return;
+    modalContent.innerHTML = `<img class="modal-media" src="${item.src}" alt="${item.alt}" />`;
+  }
 
   // Open image in modal
-  document.querySelectorAll('[data-type="image"]').forEach(img=>{
+  const imageNodes = Array.from(document.querySelectorAll('[data-type="image"]'));
+  currentMediaList = imageNodes.map(n=>({src:n.getAttribute('src'), alt:n.getAttribute('alt')||''}));
+  imageNodes.forEach((img, idx)=>{
     img.addEventListener('click', ()=>{
       if(!modalContent) return;
-      const src = img.getAttribute('src');
-      modalContent.innerHTML = `<img class="modal-media" src="${src}" alt="" />`;
+      currentMediaIndex = idx;
+      currentMediaType = 'image';
+      const item = currentMediaList[idx];
+      modalContent.innerHTML = `<img class="modal-media" src="${item.src}" alt="${item.alt}" />`;
       openModal();
     });
   });
@@ -299,6 +378,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     card.addEventListener('click', ()=>{
       const id = card.getAttribute('data-video-id');
       if(!id || !modalContent) return;
+      currentMediaType = 'video';
+      currentMediaIndex = -1;
       // If `data-video-id` points to a local video file (mp4/webm/ogg) use <video>
       const isFile = /\.(mp4|webm|ogg)(\?.*)?$/i.test(id) || id.startsWith('.') || id.startsWith('/');
       modalContent.innerHTML = '';
@@ -445,7 +526,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       if(db){
         await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, createdAt: new Date() });
-        alert('Evento creado en Firebase');
+        notify('Evento creado en Firebase');
       } else {
         // fallback to localStorage
         const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl };
@@ -454,9 +535,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         renderCalendar(currentDate);
         renderAdminList();
         renderNextEvent();
-        alert('Evento creado en local (sin Firebase)');
+        notify('Evento creado en local (sin Firebase)');
       }
-    }catch(err){ console.error(err); alert('Error creando evento: '+err.message); }
+    }catch(err){ console.error(err); notify('Error creando evento: '+err.message); }
   }
 
   // Upload helper for Cloudinary (unsigned upload preset)
@@ -558,7 +639,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('headerBtnLogin')?.addEventListener('click', ()=>{
       const e = document.getElementById('headerEmail').value;
       const p = document.getElementById('headerPass').value;
-      if(!e||!p) return alert('Email y contraseña requeridos');
+      if(!e||!p) return notify('Email y contraseña requeridos');
       adminLogin(e,p);
       // keep popover open briefly; setupAuthUI will update buttons after state change
     });
@@ -568,7 +649,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('headerRefreshClaims')?.addEventListener('click', async ()=>{
       try{
         const user = window._FIREBASE && window._FIREBASE.auth && window._FIREBASE.auth.currentUser;
-        if(!user) return alert('No hay usuario autenticado');
+        if(!user) return notify('No hay usuario autenticado');
         await user.getIdTokenResult(true); // force refresh
         const token = await user.getIdTokenResult();
         const email = (window._FIREBASE.auth.currentUser?.email||'').toLowerCase();
@@ -579,8 +660,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const adminPanelBtn = document.getElementById('adminPanelBtn');
         if(adminPanelBtn) adminPanelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
         if(isAdmin && eventAdmin){ eventAdmin.removeAttribute('hidden'); renderAdminList(); }
-        alert('Claims actualizados. Estado: ' + (isAdmin ? 'Administrador' : 'No administrador'));
-      }catch(err){ console.error(err); alert('Error actualizando claims: '+(err.message||err)); }
+        notify('Claims actualizados. Estado: ' + (isAdmin ? 'Administrador' : 'No administrador'));
+      }catch(err){ console.error(err); notify('Error actualizando claims: '+(err.message||err)); }
     });
   }
 
@@ -589,8 +670,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       await window._FIREBASE.auth.signInWithEmailAndPassword(email, password);
       // close the popover if it's open (better UX on mobile)
       try{ const hp = document.getElementById('headerLoginPopover'); if(hp && !hp.hasAttribute('hidden')) hp.setAttribute('hidden',''); }catch(e){}
-      alert('Ingresado');
-    }catch(e){ alert('Error login: '+e.message); }
+      notify('Ingresado');
+    }catch(e){ notify('Error login: '+e.message); }
   }
 
   async function adminLogout(){ if(isFirebaseReady) await window._FIREBASE.auth.signOut(); }
@@ -738,6 +819,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       eventsList.appendChild(Object.assign(document.createElement('div'),{textContent:'No hay eventos para esta fecha.'}));
       return;
     }
+    const flyerItems = list.filter(ev=> !!ev.flyer).map(ev=>({ src: ev.flyer, alt: (ev.title||'Flyer') }));
     list.forEach(ev=>{
       const it = document.createElement('div'); it.className='events-item';
       let html = `<strong>${ev.title}</strong>`;
@@ -752,7 +834,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(img){
         img.addEventListener('click', ()=>{
           if(!modalContent) return;
-          modalContent.innerHTML = `<img class="modal-media" src="${ev.flyer}" alt="Flyer"/>`;
+          currentMediaType = 'image';
+          currentMediaList = flyerItems.length ? flyerItems : [{ src: ev.flyer, alt: (ev.title||'Flyer') }];
+          currentMediaIndex = Math.max(0, currentMediaList.findIndex(x=> x.src === ev.flyer));
+          modalContent.innerHTML = `<img class="modal-media" src="${ev.flyer}" alt="${ev.title||'Flyer'}"/>`;
           openModal();
         });
       }
@@ -791,7 +876,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         if(isFirebaseReady && ev.id && ev.id.length===20){
           // try delete from Firebase
           try{ await window._FIREBASE.db.collection('events').doc(ev.id).delete(); }
-          catch(e){ console.error(e); alert('Error eliminando en Firebase: '+e.message); }
+          catch(e){ console.error(e); notify('Error eliminando en Firebase: '+e.message); }
         } else {
           events = events.filter(x=>x.id!==ev.id); saveEvents();
         }
@@ -801,6 +886,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const view = document.createElement('button'); view.textContent = 'Ver'; view.className = 'btn-outline';
       view.addEventListener('click', ()=>{
         if(!modalContent) return;
+        resetMediaNav();
         let html = `<h3>${ev.title}</h3><p class="muted">${ev.date}${ev.time? ' — '+ev.time:''}</p>`;
         if(ev.description) html += `<p>${ev.description}</p>`;
         if(ev.flyer) html += `<img class="modal-media" src="${ev.flyer}" alt="Flyer"/>`;
@@ -816,7 +902,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   toggleAdmin?.addEventListener('click', ()=>{
     if(!eventAdmin) return;
     if(!isAdmin){
-      alert('Solo administradores pueden acceder al panel. Inicia sesión con una cuenta de administrador.');
+      notify('Solo administradores pueden acceder al panel. Inicia sesión con una cuenta de administrador.');
       return;
     }
     const showing = !eventAdmin.hasAttribute('hidden');
@@ -840,10 +926,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const time = document.getElementById('eventTime').value;
     const desc = document.getElementById('eventDesc').value.trim();
     const flyerFile = document.getElementById('eventFlyer')?.files?.[0];
-    if(!title || !date) return alert('Complete título y fecha.');
+    if(!title || !date) return notify('Complete título y fecha.');
     // Only allow admins to create events
     if(!isAdmin){
-      return alert('Solo administradores pueden crear eventos.');
+      return notify('Solo administradores pueden crear eventos.');
     }
     if(isFirebaseReady && isAdmin){
       // create in Firebase and upload flyer

@@ -98,6 +98,7 @@
 </head>
 <body>
 <a class="skip-link" href="#mainContent">Saltar al contenido principal</a>
+<div id="statusLive" class="sr-only" aria-live="polite" role="status"></div>
 <header class="site-header">
     <div class="container header-inner header--elrey">
         <div class="header-left">
@@ -106,7 +107,7 @@
             </a>
         </div>
         <div class="header-center">
-            <nav class="site-nav" role="navigation">
+            <nav class="site-nav" id="primaryNav" role="navigation">
                 <a href="index.html" aria-current="page" data-i18n="nav.home">Inicio</a>
                 <a href="#Sobre" data-i18n="nav.about">Sobre</a>
                 <a href="#gallery" data-i18n="nav.gallery">Galería</a>
@@ -354,6 +355,8 @@
 <!-- Lightbox / Modal -->
 <div id="modal" class="modal" aria-hidden="true">
     <button id="modalClose" class="modal-close" aria-label="Cerrar">✕</button>
+    <button id="modalPrev" class="modal-nav prev" aria-label="Anterior" hidden>‹</button>
+    <button id="modalNext" class="modal-nav next" aria-label="Siguiente" hidden>›</button>
     <div class="modal-content" id="modalContent"></div>
 </div>
 <!-- Firebase compat SDKs + init (replace firebaseConfig with your project's values) -->
