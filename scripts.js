@@ -813,7 +813,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function showEventsForDate(iso){
     const list = events.filter(ev=>ev.date===iso).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
     eventsList.innerHTML = '';
-    const h = document.createElement('h4'); h.textContent = new Date(iso).toLocaleDateString('es-ES',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    const h = document.createElement('h4'); h.textContent = new Date(`${iso}T00:00:00`).toLocaleDateString('es-ES',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
     eventsList.appendChild(h);
     if(!list.length){
       eventsList.appendChild(Object.assign(document.createElement('div'),{textContent:'No hay eventos para esta fecha.'}));
