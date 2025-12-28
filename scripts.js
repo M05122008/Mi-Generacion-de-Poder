@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', ()=>{
+  // Preloader: ocultar al cargar o tras un breve tiempo
+  const preloader = document.getElementById('preloader');
+  let preloaderDone = false;
+  function hidePreloader(){
+    if(preloader && !preloaderDone){
+      preloaderDone = true;
+      preloader.classList.add('hidden');
+      setTimeout(()=>{ try{ preloader.remove(); }catch(e){} }, 2000);
+    }
+  }
+  window.addEventListener('load', hidePreloader, { once: true });
+  setTimeout(hidePreloader, 4200);
   const liveRegion = document.getElementById('statusLive');
   const announce = (msg)=>{
     if(!liveRegion) return;
@@ -184,6 +196,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   let lastFocus = null;
+  let overlayHistoryActive = false;
   function trapFocus(e){
     if(e.key !== 'Tab') return;
     const focusables = inner.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])');
@@ -208,6 +221,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     mobileOverlay.classList.add('open');
     mobileOverlay.setAttribute('aria-hidden','false');
     document.body.classList.add('nav-open');
+    document.documentElement.classList.add('nav-open');
+    if(!overlayHistoryActive){
+      try{ history.pushState({ mobileOverlay:true }, '', location.href); overlayHistoryActive = true; }catch(e){}
+    }
     if(navToggle){ navToggle.classList.add('open'); navToggle.setAttribute('aria-expanded','true'); }
     const links = mobileOverlay.querySelectorAll('.mobile-nav-inner a');
     const total = links.length;
@@ -224,6 +241,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     mobileOverlay.classList.remove('open');
     mobileOverlay.setAttribute('aria-hidden','true');
     document.body.classList.remove('nav-open');
+    document.documentElement.classList.remove('nav-open');
+    overlayHistoryActive = false;
     if(navToggle){ navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); }
     document.removeEventListener('keydown', onOverlayKeydown);
     if(lastFocus && typeof lastFocus.focus === 'function'){ lastFocus.focus(); }
@@ -235,6 +254,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       e.stopPropagation();
     }
   });
+  mobileOverlay.addEventListener('touchmove', (e)=>{
+    if(mobileOverlay.classList.contains('open')){ e.preventDefault(); }
+  }, { passive:false });
   mobileOverlay.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape'){ e.preventDefault(); closeMobileOverlay(); }
   });
@@ -270,11 +292,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let currentMediaIndex = -1;
   let currentMediaType = '';
   const resetMediaNav = ()=>{ currentMediaType=''; currentMediaIndex=-1; };
+  let modalHistoryActive = false;
 
   function openModal(){
     if(typeof stopBanner === 'function') stopBanner();
     modal?.setAttribute('aria-hidden','false');
     document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
+    if(!modalHistoryActive){
+      try{ history.pushState({ modal:true }, '', location.href); modalHistoryActive = true; }catch(e){}
+    }
     lastModalFocus = document.activeElement;
     const focusable = modal?.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     focusable?.focus();
@@ -285,6 +312,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function closeModal(){
     modal?.setAttribute('aria-hidden','true');
     document.body.classList.remove('modal-open');
+    document.documentElement.classList.remove('modal-open');
+    modalHistoryActive = false;
     if(modalContent) modalContent.innerHTML = '';
     if(typeof startBanner === 'function') startBanner();
     if(lastModalFocus && typeof lastModalFocus.focus === 'function') lastModalFocus.focus();
@@ -302,6 +331,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   modalPrev?.addEventListener('click', ()=> showMediaByOffset(-1));
   modalNext?.addEventListener('click', ()=> showMediaByOffset(1));
+
+  window.addEventListener('popstate', ()=>{
+    // Prioridad: cerrar modal si está abierto; si no, cerrar overlay móvil.
+    const isModalOpen = modal && modal.getAttribute('aria-hidden') === 'false';
+    if(isModalOpen){ closeModal(); return; }
+    const isOverlayOpen = mobileOverlay && mobileOverlay.classList.contains('open');
+    if(isOverlayOpen){ closeMobileOverlay(); return; }
+  });
 
   function showMediaByOffset(delta){
     if(currentMediaIndex < 0) return;
