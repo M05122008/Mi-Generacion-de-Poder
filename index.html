@@ -276,7 +276,15 @@
                         <label>Descripción<br><textarea id="eventDesc" rows="3" placeholder="Detalles del evento (opcional)"></textarea></label>
                     </div>
                     <div class="form-row">
-                        <label>Flyer (imagen)<br><input type="file" id="eventFlyer" accept="image/*"></label>
+                        <label>Flyers / Videos<br>
+                            <input type="file" id="eventMedia" accept="image/*,video/*" multiple>
+                        </label>
+                        <div id="eventDrop" class="dropzone" aria-label="Arrastra imágenes o videos aquí" tabindex="0">
+                            Arrastra imágenes o videos aquí o haz click para elegir
+                        </div>
+                        <div id="eventPreviews" class="media-previews" aria-live="polite"></div>
+                    </div>
+                    <div class="form-row form-actions">
                         <button type="submit" class="btn">Agregar / Guardar</button>
                         <button type="button" id="cancelEvent" class="btn ghost">Cancelar</button>
                     </div>

@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         events = [];
         snapshot.forEach(doc=>{
           const d = doc.data();
-          events.push({ id: doc.id, title: d.title||'', date: d.date, time: d.time||'', description: d.description||'', flyer: d.flyer||'' });
+          events.push({ id: doc.id, title: d.title||'', date: d.date, time: d.time||'', description: d.description||'', flyer: d.flyer||'', media: d.media || [] });
         });
         renderCalendar(currentDate);
         renderAdminList();
@@ -543,30 +543,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
     return null;
   }
 
-  async function adminCreateEventFirebase(dateISO, title, time, description, file){
+  async function uploadFileAny(file){
+    // Primero Cloudinary si está configurado
+    if(window._UPLOAD && window._UPLOAD.provider === 'cloudinary'){
+      return uploadToCloudinary(file);
+    }
+    // Luego Firebase Storage si existe
+    if(window._FIREBASE && window._FIREBASE.storage){
+      const storage = window._FIREBASE.storage;
+      const path = 'flyers/' + Date.now() + '_' + file.name.replace(/\s+/g,'_');
+      const uploadTask = await storage.ref().child(path).put(file);
+      return await storage.ref().child(path).getDownloadURL();
+    }
+    throw new Error('No hay almacenamiento configurado para subir archivos');
+  }
+
+  async function adminCreateEventFirebase(dateISO, title, time, description, mediaFiles){
     try{
       const db = window._FIREBASE.db;
-      let flyerUrl = '';
-      // If Cloudinary configured, upload there
-      if(window._UPLOAD && window._UPLOAD.provider === 'cloudinary' && file){
-        try{
-          flyerUrl = await uploadToCloudinary(file);
-        }catch(err){ console.error('Cloudinary upload failed', err); throw err; }
+      const media = [];
+      if(mediaFiles && mediaFiles.length){
+        for(const file of mediaFiles){
+          const url = await uploadFileAny(file);
+          const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+          media.push({ type, url, thumb: type==='image' ? url : '' });
+        }
       }
-      // If Firebase storage is available and no flyerUrl yet, try Firebase storage
-      else if(window._FIREBASE && window._FIREBASE.storage && file){
-        const storage = window._FIREBASE.storage;
-        const path = 'flyers/' + Date.now() + '_' + file.name.replace(/\s+/g,'_');
-        const uploadTask = await storage.ref().child(path).put(file);
-        flyerUrl = await storage.ref().child(path).getDownloadURL();
-      }
+      const flyerUrl = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
 
       if(db){
-        await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, createdAt: new Date() });
+        await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, media, createdAt: new Date() });
         notify('Evento creado en Firebase');
       } else {
-        // fallback to localStorage
-        const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl };
+        // fallback a localStorage con URLs ya subidas (Cloudinary) si se logró subir; de lo contrario sin media
+        const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl, media };
         events.push(obj);
         saveEvents();
         renderCalendar(currentDate);
@@ -741,6 +751,74 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   let events = loadEvents();
 
+  function clearPendingMedia(){
+    pendingMedia.forEach(m=>{ if(m.preview) URL.revokeObjectURL(m.preview); });
+    pendingMedia = [];
+    renderPendingPreviews();
+  }
+
+  function renderPendingPreviews(){
+    if(!eventPreviews) return;
+    eventPreviews.innerHTML = '';
+    if(!pendingMedia.length){
+      eventPreviews.innerHTML = '<div class="muted">Sin archivos añadidos.</div>';
+      return;
+    }
+    pendingMedia.forEach((item, idx)=>{
+      const card = document.createElement('div'); card.className = 'media-card';
+      const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = item.type === 'video' ? 'Video' : 'Imagen';
+      const remove = document.createElement('button'); remove.className = 'remove'; remove.type = 'button'; remove.innerHTML = '×';
+      remove.addEventListener('click', ()=>{
+        if(item.preview) URL.revokeObjectURL(item.preview);
+        pendingMedia.splice(idx,1);
+        renderPendingPreviews();
+      });
+      let mediaEl;
+      if(item.type === 'video'){
+        mediaEl = document.createElement('video');
+        mediaEl.src = item.preview;
+        mediaEl.muted = true; mediaEl.playsInline = true; mediaEl.loop = true; mediaEl.autoplay = true;
+      } else {
+        mediaEl = document.createElement('img');
+        mediaEl.src = item.preview;
+        mediaEl.alt = item.file?.name || '';
+      }
+      card.appendChild(mediaEl);
+      card.appendChild(badge);
+      card.appendChild(remove);
+      eventPreviews.appendChild(card);
+    });
+  }
+
+  function addPendingFiles(files){
+    if(!files) return;
+    Array.from(files).forEach(file=>{
+      const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+      const preview = URL.createObjectURL(file);
+      pendingMedia.push({ file, type, preview });
+    });
+    renderPendingPreviews();
+  }
+
+  function setupMediaInputs(){
+    try{
+      eventMediaInput?.addEventListener('change', (e)=>{
+        addPendingFiles(e.target.files);
+      });
+
+      if(eventDrop){
+        const activate = ()=> eventDrop.classList.add('dragover');
+        const deactivate = ()=> eventDrop.classList.remove('dragover');
+        ['dragenter','dragover'].forEach(ev=> eventDrop.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); activate(); }));
+        ['dragleave','drop'].forEach(ev=> eventDrop.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); deactivate(); }));
+        eventDrop.addEventListener('drop', (e)=>{ addPendingFiles(e.dataTransfer.files); });
+        eventDrop.addEventListener('click', ()=> eventMediaInput?.click());
+        eventDrop.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); eventMediaInput?.click(); } });
+      }
+    }catch(err){ console.warn('setupMediaInputs error', err); }
+  }
+  setupMediaInputs();
+
   const calendarEl = document.getElementById('calendar');
   const monthYearEl = document.getElementById('monthYear');
   const prevBtn = document.getElementById('prevMonth');
@@ -750,6 +828,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const eventAdmin = document.getElementById('eventAdmin');
   const eventForm = document.getElementById('eventForm');
   const adminEvents = document.getElementById('adminEvents');
+  const eventMediaInput = document.getElementById('eventMedia');
+  const eventDrop = document.getElementById('eventDrop');
+  const eventPreviews = document.getElementById('eventPreviews');
+
+  let pendingMedia = [];
 
   let currentDate = new Date();
 
@@ -856,27 +939,53 @@ document.addEventListener('DOMContentLoaded', ()=>{
       eventsList.appendChild(Object.assign(document.createElement('div'),{textContent:'No hay eventos para esta fecha.'}));
       return;
     }
-    const flyerItems = list.filter(ev=> !!ev.flyer).map(ev=>({ src: ev.flyer, alt: (ev.title||'Flyer') }));
     list.forEach(ev=>{
       const it = document.createElement('div'); it.className='events-item';
       let html = `<strong>${ev.title}</strong>`;
       if(ev.time) html += ` — <span class="muted">${ev.time}</span>`;
       if(ev.description) html += `<div>${ev.description}</div>`;
-      if(ev.flyer){
-        // show a single, modestly sized preview image (not duplicate thumbnail)
-        html += `<div class="event-flyer-preview"><img src="${ev.flyer}" alt="Flyer preview" class="event-flyer-img"/></div>`;
-      }
+      const mediaList = (ev.media && ev.media.length) ? ev.media : (ev.flyer ? [{ type:'image', url: ev.flyer, thumb: ev.flyer }] : []);
       it.innerHTML = html;
-      const img = it.querySelector('img');
-      if(img){
-        img.addEventListener('click', ()=>{
-          if(!modalContent) return;
-          currentMediaType = 'image';
-          currentMediaList = flyerItems.length ? flyerItems : [{ src: ev.flyer, alt: (ev.title||'Flyer') }];
-          currentMediaIndex = Math.max(0, currentMediaList.findIndex(x=> x.src === ev.flyer));
-          modalContent.innerHTML = `<img class="modal-media" src="${ev.flyer}" alt="${ev.title||'Flyer'}"/>`;
-          openModal();
+      if(mediaList.length){
+        const grid = document.createElement('div'); grid.className = 'media-previews';
+        mediaList.forEach((m, idx)=>{
+          const card = document.createElement('div'); card.className = 'media-card';
+          const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = m.type === 'video' ? 'Video' : 'Imagen';
+          let thumbEl;
+          if(m.type === 'video'){
+            thumbEl = document.createElement('video');
+            thumbEl.src = m.url;
+            thumbEl.muted = true; thumbEl.playsInline = true; thumbEl.loop = true; thumbEl.autoplay = true;
+            if(m.thumb) thumbEl.poster = m.thumb;
+          } else {
+            thumbEl = document.createElement('img');
+            thumbEl.src = m.thumb || m.url;
+            thumbEl.alt = ev.title || 'Flyer';
+          }
+          thumbEl.style.cursor = 'pointer';
+          card.appendChild(thumbEl);
+          card.appendChild(badge);
+          card.addEventListener('click', ()=>{
+            if(!modalContent) return;
+            if(m.type === 'video'){
+              currentMediaType = 'video';
+              currentMediaList = [];
+              currentMediaIndex = -1;
+              modalContent.innerHTML = `<video class="modal-media" src="${m.url}" controls playsinline autoplay style="max-height:80vh"></video>`;
+              openModal();
+            } else {
+              currentMediaType = 'image';
+              currentMediaList = mediaList.filter(x=> x.type === 'image').map(x=>({ src: x.url, alt: ev.title || 'Flyer' }));
+              const imagesOnly = currentMediaList;
+              const startIndex = imagesOnly.findIndex(x=> x.src === m.url);
+              currentMediaIndex = startIndex >=0 ? startIndex : 0;
+              modalContent.innerHTML = `<img class="modal-media" src="${m.url}" alt="${ev.title||'Flyer'}"/>`;
+              openModal();
+            }
+          });
+          grid.appendChild(card);
         });
+        it.appendChild(grid);
       }
       eventsList.appendChild(it);
     });
@@ -899,9 +1008,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const row = document.createElement('div'); row.className='admin-event-row';
       const left = document.createElement('div'); left.className = 'left';
       const info = document.createElement('div'); info.className = 'info';
-      // thumbnail if exists
-      if(ev.flyer){
-        const img = document.createElement('img'); img.className = 'thumb'; img.src = ev.flyer; img.alt = ev.title + ' flyer'; img.loading = 'lazy';
+      // thumbnail: usa primer media o flyer
+      const firstMedia = (ev.media && ev.media.length) ? ev.media[0] : null;
+      const thumbUrl = firstMedia ? (firstMedia.thumb || firstMedia.url) : (ev.flyer || '');
+      if(thumbUrl){
+        const isVideo = firstMedia && firstMedia.type === 'video';
+        const img = document.createElement('img'); img.className = 'thumb'; img.src = thumbUrl; img.alt = ev.title + (isVideo ? ' video' : ' flyer'); img.loading = 'lazy';
         left.appendChild(img);
       }
       info.innerHTML = `<div class="event-title">${ev.title}</div><div class="event-meta">${ev.date}${ev.time? ' — '+ev.time:''}</div>`;
@@ -926,7 +1038,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
         resetMediaNav();
         let html = `<h3>${ev.title}</h3><p class="muted">${ev.date}${ev.time? ' — '+ev.time:''}</p>`;
         if(ev.description) html += `<p>${ev.description}</p>`;
-        if(ev.flyer) html += `<img class="modal-media" src="${ev.flyer}" alt="Flyer"/>`;
+        const mediaList = (ev.media && ev.media.length) ? ev.media : (ev.flyer ? [{ type:'image', url: ev.flyer, thumb: ev.flyer }] : []);
+        if(mediaList.length){
+          const first = mediaList[0];
+          if(first.type === 'video'){
+            html += `<video class="modal-media" src="${first.url}" controls playsinline style="max-height:70vh"></video>`;
+          } else {
+            html += `<img class="modal-media" src="${first.url}" alt="Flyer"/>`;
+          }
+        }
         modalContent.innerHTML = html; openModal();
       });
       right.appendChild(view);
@@ -956,36 +1076,51 @@ document.addEventListener('DOMContentLoaded', ()=>{
     renderAdminList();
   });
 
-  eventForm?.addEventListener('submit', (e)=>{
+  eventForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const title = document.getElementById('eventTitle').value.trim();
     const date = document.getElementById('eventDate').value;
     const time = document.getElementById('eventTime').value;
     const desc = document.getElementById('eventDesc').value.trim();
-    const flyerFile = document.getElementById('eventFlyer')?.files?.[0];
     if(!title || !date) return notify('Complete título y fecha.');
     // Only allow admins to create events
     if(!isAdmin){
       return notify('Solo administradores pueden crear eventos.');
     }
-    if(isFirebaseReady && isAdmin){
-      // create in Firebase and upload flyer
-      adminCreateEventFirebase(date, title, time, desc, flyerFile).then(()=>{
-        eventForm.reset();
-      });
-    } else {
-      const obj = { id: cryptoRandomId(), title, date, time, description: desc };
-      events.push(obj);
-      saveEvents();
-      renderCalendar(currentDate);
-      renderAdminList();
-      renderNextEvent();
-      eventForm.reset();
-      eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
-    }
+    const mediaFiles = pendingMedia.map(m=> m.file).filter(Boolean);
+    try{
+      if(isFirebaseReady && isAdmin){
+        await adminCreateEventFirebase(date, title, time, desc, mediaFiles);
+      } else {
+        // Intentar subir a Cloudinary si está configurado; si no, crear sin media
+        let media = [];
+        if(mediaFiles.length){
+          if(window._UPLOAD && window._UPLOAD.provider === 'cloudinary'){
+            for(const file of mediaFiles){
+              const url = await uploadFileAny(file);
+              const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+              media.push({ type, url, thumb: type==='image' ? url : '' });
+            }
+          } else {
+            notify('No hay almacenamiento configurado; se guardará el evento sin archivos.');
+          }
+        }
+        const flyer = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
+        const obj = { id: cryptoRandomId(), title, date, time, description: desc, flyer, media };
+        events.push(obj);
+        saveEvents();
+        renderCalendar(currentDate);
+        renderAdminList();
+        renderNextEvent();
+        eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
+        notify(media.length ? 'Evento creado (local con media subida)' : 'Evento creado (local)');
+      }
+    }catch(err){ notify('Error guardando evento: '+(err.message||err)); }
+    eventForm.reset();
+    clearPendingMedia();
   });
 
-  document.getElementById('cancelEvent')?.addEventListener('click', ()=>{ eventForm?.reset(); eventAdmin?.setAttribute('hidden',''); });
+  document.getElementById('cancelEvent')?.addEventListener('click', ()=>{ eventForm?.reset(); clearPendingMedia(); eventAdmin?.setAttribute('hidden',''); });
 
   prevBtn?.addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(currentDate); });
   nextBtn?.addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(currentDate); });
