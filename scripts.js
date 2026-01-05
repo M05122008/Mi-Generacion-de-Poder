@@ -751,6 +751,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   let events = loadEvents();
 
+  const calendarEl = document.getElementById('calendar');
+  const monthYearEl = document.getElementById('monthYear');
+  const prevBtn = document.getElementById('prevMonth');
+  const nextBtn = document.getElementById('nextMonth');
+  const eventsList = document.getElementById('eventsList');
+  const toggleAdmin = document.getElementById('toggleAdmin');
+  const eventAdmin = document.getElementById('eventAdmin');
+  const eventForm = document.getElementById('eventForm');
+  const adminEvents = document.getElementById('adminEvents');
+  const eventMediaInput = document.getElementById('eventMedia');
+  const eventDrop = document.getElementById('eventDrop');
+  const eventPreviews = document.getElementById('eventPreviews');
+
+  let pendingMedia = [];
+
   function clearPendingMedia(){
     pendingMedia.forEach(m=>{ if(m.preview) URL.revokeObjectURL(m.preview); });
     pendingMedia = [];
@@ -830,21 +845,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }catch(err){ console.warn('setupMediaInputs error', err); }
   }
   setupMediaInputs();
-
-  const calendarEl = document.getElementById('calendar');
-  const monthYearEl = document.getElementById('monthYear');
-  const prevBtn = document.getElementById('prevMonth');
-  const nextBtn = document.getElementById('nextMonth');
-  const eventsList = document.getElementById('eventsList');
-  const toggleAdmin = document.getElementById('toggleAdmin');
-  const eventAdmin = document.getElementById('eventAdmin');
-  const eventForm = document.getElementById('eventForm');
-  const adminEvents = document.getElementById('adminEvents');
-  const eventMediaInput = document.getElementById('eventMedia');
-  const eventDrop = document.getElementById('eventDrop');
-  const eventPreviews = document.getElementById('eventPreviews');
-
-  let pendingMedia = [];
 
   let currentDate = new Date();
 
