@@ -266,8 +266,9 @@
                     <div class="form-row">
                         <label>Título<br><input type="text" id="eventTitle" required placeholder="Ej: Domingo Sobrenatural"></label>
                     </div>
-                    <div class="form-row">
-                        <label>Fecha<br><input type="date" id="eventDate" required></label>
+                    <div class="form-row grid-2">
+                        <label>Fecha inicio<br><input type="date" id="eventDate" required></label>
+                        <label>Fecha fin (opcional)<br><input type="date" id="eventEndDate"></label>
                     </div>
                     <div class="form-row">
                         <label>Hora<br><input type="time" id="eventTime" placeholder="18:00"></label>
@@ -276,11 +277,14 @@
                         <label>Descripción<br><textarea id="eventDesc" rows="3" placeholder="Detalles del evento (opcional)"></textarea></label>
                     </div>
                     <div class="form-row">
-                        <label>Flyers / Videos<br>
-                            <input type="file" id="eventMedia" accept="image/*,video/*" multiple>
+                        <label>Flyers<br>
+                            <input type="file" id="eventMedia" accept="image/*" multiple class="visually-hidden-input">
                         </label>
-                        <div id="eventDrop" class="dropzone" aria-label="Arrastra imágenes o videos aquí" tabindex="0">
-                            Arrastra imágenes o videos aquí o haz click para elegir
+                        <div id="eventDrop" class="dropzone" aria-label="Arrastra imágenes aquí" tabindex="0">
+                            <div class="drop-icon" aria-hidden="true">⬆</div>
+                            <div class="drop-title">Sube o arrastra tus flyers</div>
+                            <small>Formatos: JPG/PNG/WebP. Puedes seleccionar múltiples.</small>
+                            <button type="button" class="btn drop-btn" aria-label="Seleccionar archivos">Elegir archivos</button>
                         </div>
                         <div id="eventPreviews" class="media-previews" aria-live="polite"></div>
                     </div>

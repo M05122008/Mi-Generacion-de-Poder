@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         events = [];
         snapshot.forEach(doc=>{
           const d = doc.data();
-          events.push({ id: doc.id, title: d.title||'', date: d.date, time: d.time||'', description: d.description||'', flyer: d.flyer||'', media: d.media || [] });
+          events.push({ id: doc.id, title: d.title||'', date: d.date, endDate: d.endDate || d.date, time: d.time||'', description: d.description||'', flyer: d.flyer||'', media: d.media || [] });
         });
         renderCalendar(currentDate);
         renderAdminList();
@@ -544,21 +544,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   async function uploadFileAny(file){
-    // Primero Cloudinary si está configurado
+    // Solo imágenes (flyers)
+    if(!file || !(file.type||'').startsWith('image')) throw new Error('Solo se permiten imágenes');
     if(window._UPLOAD && window._UPLOAD.provider === 'cloudinary'){
       return uploadToCloudinary(file);
     }
-    // Luego Firebase Storage si existe
     if(window._FIREBASE && window._FIREBASE.storage){
       const storage = window._FIREBASE.storage;
       const path = 'flyers/' + Date.now() + '_' + file.name.replace(/\s+/g,'_');
-      const uploadTask = await storage.ref().child(path).put(file);
+      await storage.ref().child(path).put(file);
       return await storage.ref().child(path).getDownloadURL();
     }
     throw new Error('No hay almacenamiento configurado para subir archivos');
   }
 
-  async function adminCreateEventFirebase(dateISO, title, time, description, mediaFiles){
+  async function adminCreateEventFirebase(dateISO, endISO, title, time, description, mediaFiles){
     try{
       const db = window._FIREBASE.db;
       const media = [];
@@ -566,15 +566,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
         for(const file of mediaFiles){
           try{
             const url = await uploadFileAny(file);
-            const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
-            media.push({ type, url, thumb: type==='image' ? url : '' });
+            media.push({ type:'image', url, thumb: url });
           }catch(err){
             console.warn('Upload failed, skipping file', err);
             // Si no hay storage configurado, intenta fallback local (dataURL) para no perderlo
             if(!window._UPLOAD && !(window._FIREBASE && window._FIREBASE.storage)){
               const dataUrl = await readFileAsDataURL(file);
-              const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
-              media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
+              media.push({ type:'image', url: dataUrl, thumb: dataUrl });
             } else {
               notify(`No se pudo subir ${file.name}; se omitirá este archivo.`);
             }
@@ -584,11 +582,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const flyerUrl = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
 
       if(db){
-        await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, media, createdAt: new Date() });
+        await db.collection('events').add({ date: dateISO, endDate: endISO || dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, media, createdAt: new Date() });
         notify('Evento creado en Firebase');
       } else {
         // fallback a localStorage (dataURL si no hubo storage) 
-        const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl, media };
+        const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, endDate: endISO || dateISO, time: time||'', description: description||'', flyer: flyerUrl, media };
         events.push(obj);
         saveEvents();
         renderCalendar(currentDate);
@@ -752,16 +750,43 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function cryptoRandomId(){ return Math.random().toString(36).slice(2,9); }
 
+  function normalizeEvent(ev){
+    return {
+      ...ev,
+      endDate: ev.endDate || ev.date,
+      media: ev.media || []
+    };
+  }
+
   function loadEvents(){
     try{
       const raw = localStorage.getItem('migp_events');
-      if(!raw) return DEFAULT_EVENTS.slice();
-      return JSON.parse(raw);
-    }catch(e){ return DEFAULT_EVENTS.slice(); }
+      if(!raw) return DEFAULT_EVENTS.map(normalizeEvent);
+      return JSON.parse(raw).map(normalizeEvent);
+    }catch(e){ return DEFAULT_EVENTS.map(normalizeEvent); }
   }
   function saveEvents(){ localStorage.setItem('migp_events', JSON.stringify(events)); }
 
   let events = loadEvents();
+
+  prunePastEvents();
+
+  function getActiveEvents(){
+    const nowIso = new Date().toISOString().slice(0,10);
+    return events.filter(ev=>{
+      const end = ev.endDate || ev.date;
+      return end && end >= nowIso;
+    });
+  }
+
+  function prunePastEvents(){
+    if(isFirebaseReady) return; // no auto-delete remote data
+    const active = getActiveEvents();
+    if(active.length !== events.length){
+      events = active;
+      saveEvents();
+    }
+  }
 
   const calendarEl = document.getElementById('calendar');
   const monthYearEl = document.getElementById('monthYear');
@@ -779,7 +804,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   let pendingMedia = [];
 
   function clearPendingMedia(){
-    pendingMedia.forEach(m=>{ if(m.preview) URL.revokeObjectURL(m.preview); });
+    pendingMedia.forEach(m=>{ if(m.preview){ try{ URL.revokeObjectURL(m.preview); }catch(e){} } });
     pendingMedia = [];
     renderPendingPreviews();
   }
@@ -793,23 +818,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     pendingMedia.forEach((item, idx)=>{
       const card = document.createElement('div'); card.className = 'media-card';
-      const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = item.type === 'video' ? 'Video' : 'Imagen';
+      const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = 'Imagen';
       const remove = document.createElement('button'); remove.className = 'remove'; remove.type = 'button'; remove.innerHTML = '×';
       remove.addEventListener('click', ()=>{
         if(item.preview) URL.revokeObjectURL(item.preview);
         pendingMedia.splice(idx,1);
         renderPendingPreviews();
       });
-      let mediaEl;
-      if(item.type === 'video'){
-        mediaEl = document.createElement('video');
-        mediaEl.src = item.preview;
-        mediaEl.muted = true; mediaEl.playsInline = true; mediaEl.loop = true; mediaEl.autoplay = true;
-      } else {
-        mediaEl = document.createElement('img');
-        mediaEl.src = item.preview;
-        mediaEl.alt = item.file?.name || '';
-      }
+      const mediaEl = document.createElement('img');
+      mediaEl.src = item.preview || item.url;
+      mediaEl.alt = item.file?.name || item.name || '';
       card.appendChild(mediaEl);
       card.appendChild(badge);
       card.appendChild(remove);
@@ -821,7 +839,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!files) return;
     Array.from(files).forEach(file=>{
       if(!file) return;
-      const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+      if(!(file.type||'').startsWith('image')){
+        notify('Solo se permiten imágenes.');
+        return;
+      }
+      const type = 'image';
       // Evita duplicados por nombre y tamaño
       if(pendingMedia.some(m=> m.file && m.file.name === file.name && m.file.size === file.size)) return;
       const preview = URL.createObjectURL(file);
@@ -859,6 +881,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   setupMediaInputs();
 
   let currentDate = new Date();
+  let editingId = null;
 
   function renderWeekdays(){
     const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -868,13 +891,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   function renderNextEvent(){
+    prunePastEvents();
     const card = document.getElementById('nextEventCard');
     const hero = document.getElementById('heroNextEvent');
     if(!card && !hero) return;
     const lang = localStorage.getItem('siteLang') || 'es';
-    const nowIso = new Date().toISOString().slice(0,10);
-    const upcoming = events
-      .filter(ev=> ev.date && ev.date >= nowIso)
+    const upcoming = getActiveEvents()
       .sort((a,b)=> (a.date + (a.time||'')) < (b.date + (b.time||'')) ? -1 : 1);
     if(!upcoming.length){
       if(card) card.innerHTML = `<div class="muted" data-i18n="events.next.empty">Sin eventos futuros.</div>`;
@@ -883,9 +905,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       return;
     }
     const ev = upcoming[0];
-    // Parse as local date to avoid timezone shifting the displayed day
-    const dateObj = new Date(`${ev.date}T00:00:00`);
-    const dateStr = dateObj.toLocaleDateString(lang==='en'?'en-US':'es-ES',{weekday:'long', month:'long', day:'numeric'});
+    const startObj = new Date(`${ev.date}T00:00:00`);
+    const endObj = ev.endDate ? new Date(`${ev.endDate}T00:00:00`) : startObj;
+    const opts = {weekday:'long', month:'long', day:'numeric'};
+    const dateStr = ev.endDate ? `${startObj.toLocaleDateString(lang==='en'?'en-US':'es-ES',opts)} — ${endObj.toLocaleDateString(lang==='en'?'en-US':'es-ES',opts)}`
+                  : startObj.toLocaleDateString(lang==='en'?'en-US':'es-ES',opts);
     if(card){
       card.innerHTML = `
         <div class="next-event-header" data-i18n="events.next.label">Próximo evento</div>
@@ -905,6 +929,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     applyI18n(lang);
   }
   function renderCalendar(date){
+    prunePastEvents();
     calendarEl.innerHTML = '';
     renderWeekdays();
     const year = date.getFullYear();
@@ -945,7 +970,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     el.setAttribute('data-date', iso);
     const dateEl = document.createElement('div'); dateEl.className='date'; dateEl.textContent = d.getDate(); el.appendChild(dateEl);
     // event marker
-    const has = events.filter(ev=>ev.date===iso);
+    const has = getActiveEvents().filter(ev=>{
+      const start = ev.date;
+      const end = ev.endDate || ev.date;
+      return start && end && iso >= start && iso <= end;
+    });
     if(has.length){
       const dot = document.createElement('div'); dot.className='event-dot'; el.appendChild(dot);
       el.addEventListener('click', ()=> showEventsForDate(iso));
@@ -955,7 +984,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   function showEventsForDate(iso){
-    const list = events.filter(ev=>ev.date===iso).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+    const list = getActiveEvents().filter(ev=>{
+      const start = ev.date;
+      const end = ev.endDate || ev.date;
+      return start && end && iso >= start && iso <= end;
+    }).sort((a,b)=> (a.time||'').localeCompare(b.time||''));
     eventsList.innerHTML = '';
     const h = document.createElement('h4'); h.textContent = new Date(`${iso}T00:00:00`).toLocaleDateString('es-ES',{weekday:'long', year:'numeric', month:'long', day:'numeric'});
     eventsList.appendChild(h);
@@ -972,40 +1005,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
       it.innerHTML = html;
       if(mediaList.length){
         const grid = document.createElement('div'); grid.className = 'media-previews';
-        mediaList.forEach((m, idx)=>{
+        const imagesOnly = mediaList.map(x=>({ src: x.url, alt: ev.title || 'Flyer' }));
+        imagesOnly.forEach((m, idx)=>{
           const card = document.createElement('div'); card.className = 'media-card';
-          const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = m.type === 'video' ? 'Video' : 'Imagen';
-          let thumbEl;
-          if(m.type === 'video'){
-            thumbEl = document.createElement('video');
-            thumbEl.src = m.url;
-            thumbEl.muted = true; thumbEl.playsInline = true; thumbEl.loop = true; thumbEl.autoplay = true;
-            if(m.thumb) thumbEl.poster = m.thumb;
-          } else {
-            thumbEl = document.createElement('img');
-            thumbEl.src = m.thumb || m.url;
-            thumbEl.alt = ev.title || 'Flyer';
-          }
+          const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = 'Flyer';
+          const thumbEl = document.createElement('img');
+          thumbEl.src = m.src;
+          thumbEl.alt = ev.title || 'Flyer';
           thumbEl.style.cursor = 'pointer';
           card.appendChild(thumbEl);
           card.appendChild(badge);
           card.addEventListener('click', ()=>{
             if(!modalContent) return;
-            if(m.type === 'video'){
-              currentMediaType = 'video';
-              currentMediaList = [];
-              currentMediaIndex = -1;
-              modalContent.innerHTML = `<video class="modal-media" src="${m.url}" controls playsinline autoplay style="max-height:80vh"></video>`;
-              openModal();
-            } else {
-              currentMediaType = 'image';
-              currentMediaList = mediaList.filter(x=> x.type === 'image').map(x=>({ src: x.url, alt: ev.title || 'Flyer' }));
-              const imagesOnly = currentMediaList;
-              const startIndex = imagesOnly.findIndex(x=> x.src === m.url);
-              currentMediaIndex = startIndex >=0 ? startIndex : 0;
-              modalContent.innerHTML = `<img class="modal-media" src="${m.url}" alt="${ev.title||'Flyer'}"/>`;
-              openModal();
-            }
+            currentMediaType = 'image';
+            currentMediaList = imagesOnly;
+            currentMediaIndex = idx;
+            modalContent.innerHTML = `<img class="modal-media" src="${m.src}" alt="${ev.title||'Flyer'}"/>`;
+            openModal();
           });
           grid.appendChild(card);
         });
@@ -1024,11 +1040,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   // Admin helpers
+  function startEdit(ev){
+    if(!isAdmin || !eventForm) return;
+    editingId = ev.id;
+    eventAdmin?.removeAttribute('hidden');
+    requestAnimationFrame(()=> eventAdmin?.classList.add('open'));
+    const t = document.getElementById('eventTitle'); if(t) t.value = ev.title || '';
+    const d = document.getElementById('eventDate'); if(d) d.value = ev.date || '';
+    const d2 = document.getElementById('eventEndDate'); if(d2) d2.value = ev.endDate || ev.date || '';
+    const tm = document.getElementById('eventTime'); if(tm) tm.value = ev.time || '';
+    const desc = document.getElementById('eventDesc'); if(desc) desc.value = ev.description || '';
+    pendingMedia = (ev.media || []).map(m=>({ type:'image', url: m.url, preview: m.url, name: m.name || 'imagen' }));
+    renderPendingPreviews();
+    const submit = eventForm.querySelector('button[type="submit"]');
+    if(submit) submit.textContent = 'Guardar cambios';
+    try{ eventForm.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){}
+  }
+
   function renderAdminList(){
     if(!adminEvents) return;
     adminEvents.innerHTML = '';
-    if(!events.length) return adminEvents.textContent = 'No hay eventos.';
-    events.slice().sort((a,b)=> a.date.localeCompare(b.date)).forEach(ev=>{
+    const source = getActiveEvents();
+    if(!source.length) return adminEvents.textContent = 'No hay eventos.';
+    source.slice().sort((a,b)=> a.date.localeCompare(b.date)).forEach(ev=>{
       const row = document.createElement('div'); row.className='admin-event-row';
       const left = document.createElement('div'); left.className = 'left';
       const info = document.createElement('div'); info.className = 'info';
@@ -1040,9 +1074,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const img = document.createElement('img'); img.className = 'thumb'; img.src = thumbUrl; img.alt = ev.title + (isVideo ? ' video' : ' flyer'); img.loading = 'lazy';
         left.appendChild(img);
       }
-      info.innerHTML = `<div class="event-title">${ev.title}</div><div class="event-meta">${ev.date}${ev.time? ' — '+ev.time:''}</div>`;
+      const end = ev.endDate && ev.endDate !== ev.date ? ` — ${ev.endDate}` : '';
+      info.innerHTML = `<div class="event-title">${ev.title}</div><div class="event-meta">${ev.date}${end}${ev.time? ' — '+ev.time:''}</div>`;
       left.appendChild(info);
       const right = document.createElement('div'); right.className = 'right';
+      const edit = document.createElement('button'); edit.textContent = 'Editar'; edit.className = 'btn-outline';
+      edit.addEventListener('click', ()=> startEdit(ev));
       const del = document.createElement('button'); del.textContent = 'Eliminar'; del.className = 'btn-danger';
       del.addEventListener('click', async ()=>{
         if(!confirm('Eliminar evento?')) return;
@@ -1060,19 +1097,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       view.addEventListener('click', ()=>{
         if(!modalContent) return;
         resetMediaNav();
-        let html = `<h3>${ev.title}</h3><p class="muted">${ev.date}${ev.time? ' — '+ev.time:''}</p>`;
+        const dateLabel = ev.endDate && ev.endDate !== ev.date ? `${ev.date} — ${ev.endDate}` : ev.date;
+        let html = `<h3>${ev.title}</h3><p class="muted">${dateLabel}${ev.time? ' — '+ev.time:''}</p>`;
         if(ev.description) html += `<p>${ev.description}</p>`;
         const mediaList = (ev.media && ev.media.length) ? ev.media : (ev.flyer ? [{ type:'image', url: ev.flyer, thumb: ev.flyer }] : []);
         if(mediaList.length){
           const first = mediaList[0];
-          if(first.type === 'video'){
-            html += `<video class="modal-media" src="${first.url}" controls playsinline style="max-height:70vh"></video>`;
-          } else {
-            html += `<img class="modal-media" src="${first.url}" alt="Flyer"/>`;
-          }
+          html += `<img class="modal-media" src="${first.url}" alt="Flyer"/>`;
         }
         modalContent.innerHTML = html; openModal();
       });
+      right.appendChild(edit);
       right.appendChild(view);
       right.appendChild(del);
       row.appendChild(left); row.appendChild(right);
@@ -1104,57 +1139,96 @@ document.addEventListener('DOMContentLoaded', ()=>{
     e.preventDefault();
     const title = document.getElementById('eventTitle').value.trim();
     const date = document.getElementById('eventDate').value;
+    let endDate = document.getElementById('eventEndDate').value;
     const time = document.getElementById('eventTime').value;
     const desc = document.getElementById('eventDesc').value.trim();
     if(!title || !date) return notify('Complete título y fecha.');
+    if(endDate && endDate < date) endDate = date;
+    if(!endDate) endDate = date;
     // Only allow admins to create events
     if(!isAdmin){
       return notify('Solo administradores pueden crear eventos.');
     }
     const mediaFiles = pendingMedia.map(m=> m.file).filter(Boolean);
     try{
-      if(isFirebaseReady && isAdmin){
-        await adminCreateEventFirebase(date, title, time, desc, mediaFiles);
-      } else {
-        // Intentar subir a Cloudinary si está configurado; si no, crear sin media
-        let media = [];
-        if(mediaFiles.length){
-          if(window._UPLOAD && window._UPLOAD.provider === 'cloudinary'){
-            for(const file of mediaFiles){
-              const url = await uploadFileAny(file);
-              const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
-              media.push({ type, url, thumb: type==='image' ? url : '' });
-            }
-          } else {
-            // Fallback local: guarda dataURL (persistirá en localStorage). Evita archivos enormes.
-            const TOO_LARGE = 4.5 * 1024 * 1024; // ~4.5MB límite de cortesía
-            for(const file of mediaFiles){
+      const existingMedia = pendingMedia
+        .filter(m=> !m.file && (m.url || m.preview))
+        .map(m=>{
+          const url = m.url || m.preview;
+          return { type:'image', url, thumb: url, name: m.name || 'imagen' };
+        });
+
+      let uploadedMedia = [];
+      if(mediaFiles.length){
+        const TOO_LARGE = 4.5 * 1024 * 1024; // ~4.5MB límite de cortesía para dataURL
+        for(const file of mediaFiles){
+          try{
+            const url = await uploadFileAny(file);
+            uploadedMedia.push({ type:'image', url, thumb: url, name: file.name });
+          }catch(err){
+            // fallback local solo si no hay storage/config
+            const noStorage = (!window._UPLOAD || !window._UPLOAD.provider) && !(window._FIREBASE && window._FIREBASE.storage);
+            if(noStorage){
               if(file.size > TOO_LARGE){
                 notify(`Archivo demasiado grande para guardar localmente: ${file.name}`);
                 continue;
               }
               const dataUrl = await readFileAsDataURL(file);
-              const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
-              media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
+              uploadedMedia.push({ type:'image', url: dataUrl, thumb: dataUrl, name: file.name });
+            } else {
+              notify(`No se pudo subir ${file.name}: ${(err.message||err)}`);
             }
           }
         }
-        const flyer = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
-        const obj = { id: cryptoRandomId(), title, date, time, description: desc, flyer, media };
-        events.push(obj);
-        saveEvents();
-        renderCalendar(currentDate);
-        renderAdminList();
-        renderNextEvent();
-        eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
-        notify(media.length ? 'Evento creado (local con media subida)' : 'Evento creado (local)');
       }
+
+      const media = [...existingMedia, ...uploadedMedia];
+      const flyer = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
+      const payload = { title, date, endDate, time, description: desc, flyer, media };
+
+      if(isFirebaseReady && isAdmin){
+        if(editingId){
+          await window._FIREBASE.db.collection('events').doc(editingId).set(payload, { merge:true });
+          notify('Evento actualizado en Firebase');
+        } else {
+          const ref = await window._FIREBASE.db.collection('events').add(payload);
+          payload.id = ref.id;
+          notify('Evento creado en Firebase');
+        }
+      } else {
+        if(editingId){
+          const idx = events.findIndex(ev=> ev.id === editingId);
+          if(idx >= 0){
+            events[idx] = { ...events[idx], ...payload };
+          }
+        } else {
+          events.push({ id: cryptoRandomId(), ...payload });
+        }
+        saveEvents();
+        notify(editingId ? 'Evento actualizado (local)' : (media.length ? 'Evento creado (local con media subida)' : 'Evento creado (local)'));
+      }
+
+      prunePastEvents();
+      renderCalendar(currentDate);
+      renderAdminList();
+      renderNextEvent();
+      eventsList.innerHTML = '<div class="muted">Selecciona un día con punto para ver los eventos.</div>';
+      editingId = null;
+      const submit = eventForm.querySelector('button[type="submit"]');
+      if(submit) submit.textContent = 'Publicar evento';
+      eventForm.reset();
+      clearPendingMedia();
     }catch(err){ notify('Error guardando evento: '+(err.message||err)); }
-    eventForm.reset();
-    clearPendingMedia();
   });
 
-  document.getElementById('cancelEvent')?.addEventListener('click', ()=>{ eventForm?.reset(); clearPendingMedia(); eventAdmin?.setAttribute('hidden',''); });
+  document.getElementById('cancelEvent')?.addEventListener('click', ()=>{
+    editingId = null;
+    eventForm?.reset();
+    clearPendingMedia();
+    const submit = eventForm?.querySelector('button[type="submit"]');
+    if(submit) submit.textContent = 'Publicar evento';
+    eventAdmin?.setAttribute('hidden','');
+  });
 
   prevBtn?.addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(currentDate); });
   nextBtn?.addEventListener('click', ()=>{ currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(currentDate); });
