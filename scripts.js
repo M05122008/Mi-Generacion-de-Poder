@@ -564,9 +564,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const media = [];
       if(mediaFiles && mediaFiles.length){
         for(const file of mediaFiles){
-          const url = await uploadFileAny(file);
-          const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
-          media.push({ type, url, thumb: type==='image' ? url : '' });
+          try{
+            const url = await uploadFileAny(file);
+            const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+            media.push({ type, url, thumb: type==='image' ? url : '' });
+          }catch(err){
+            console.warn('Upload failed, using local dataURL fallback', err);
+            // Fallback a dataURL para no perder el archivo si falla la red
+            const dataUrl = await readFileAsDataURL(file);
+            const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+            media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
+          }
         }
       }
       const flyerUrl = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
