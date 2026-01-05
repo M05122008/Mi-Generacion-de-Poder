@@ -562,6 +562,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       const db = window._FIREBASE.db;
       const media = [];
+      let fallbackLocal = false;
       if(mediaFiles && mediaFiles.length){
         for(const file of mediaFiles){
           try{
@@ -570,27 +571,28 @@ document.addEventListener('DOMContentLoaded', ()=>{
             media.push({ type, url, thumb: type==='image' ? url : '' });
           }catch(err){
             console.warn('Upload failed, using local dataURL fallback', err);
-            // Fallback a dataURL para no perder el archivo si falla la red
+            // Fallback a dataURL solo si NO vamos a Firestore; guardar en local después
             const dataUrl = await readFileAsDataURL(file);
             const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
             media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
+            fallbackLocal = true;
           }
         }
       }
       const flyerUrl = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
 
-      if(db){
+      if(db && !fallbackLocal){
         await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, media, createdAt: new Date() });
         notify('Evento creado en Firebase');
       } else {
-        // fallback a localStorage con URLs ya subidas (Cloudinary) si se logró subir; de lo contrario sin media
+        // fallback a localStorage (usa dataURL si hubo errores de red/subida o si no hay db)
         const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl, media };
         events.push(obj);
         saveEvents();
         renderCalendar(currentDate);
         renderAdminList();
         renderNextEvent();
-        notify('Evento creado en local (sin Firebase)');
+        notify(fallbackLocal ? 'Evento guardado localmente (sin subir archivos al servidor)' : 'Evento creado en local (sin Firebase)');
       }
     }catch(err){ console.error(err); notify('Error creando evento: '+err.message); }
   }
