@@ -309,12 +309,14 @@ margin:2rem auto;
 .event-admin input[type="text"]:focus, .event-admin input[type="date"]:focus, .event-admin input[type="time"]:focus, .event-admin textarea:focus{outline:none;box-shadow:0 4px 18px rgba(0,90,255,0.12);border-color:rgba(0,90,255,0.9)}
 .event-admin label{font-size:0.9rem}
 #adminEvents{margin-top:0.8rem}
-.dropzone{margin-top:.5rem;border:1px dashed rgba(255,255,255,0.2);border-radius:12px;padding:1rem;text-align:center;color:var(--muted);background:rgba(255,255,255,0.02);cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+.dropzone{margin-top:.5rem;border:1px dashed rgba(255,255,255,0.2);border-radius:14px;padding:1.1rem 1rem;text-align:center;color:var(--muted);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));cursor:pointer;transition:background .25s,border-color .25s,color .25s, transform .25s ease;box-shadow:inset 0 1px 0 rgba(255,255,255,0.05),0 10px 30px rgba(2,6,23,0.5)}
+.dropzone strong{color:#e6eef8}
+.dropzone small{display:block;color:rgba(255,255,255,0.55);margin-top:4px}
 .dropzone:focus-visible{outline:2px solid var(--accent-2);outline-offset:4px}
-.dropzone.dragover{background:rgba(94,234,212,0.08);border-color:var(--accent-2);color:#e6eef8}
+.dropzone.dragover{background:rgba(94,234,212,0.08);border-color:var(--accent-2);color:#e6eef8;transform:translateY(-2px);box-shadow:0 14px 40px rgba(0,0,0,0.35)}
 .media-previews{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-top:0.7rem}
 .media-card{position:relative;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);box-shadow:0 8px 24px rgba(2,6,23,0.45)}
-.media-card img,.media-card video{width:100%;height:120px;object-fit:cover;display:block}
+.media-card img,.media-card video{width:100%;height:140px;object-fit:cover;display:block}
 .media-card .badge{position:absolute;left:8px;top:8px;background:rgba(0,0,0,0.55);color:#e6eef8;font-size:0.75rem;padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,0.08)}
 .media-card .remove{position:absolute;right:8px;top:8px;background:rgba(0,0,0,0.6);border:0;color:#fff;border-radius:999px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .media-card .remove:hover{background:rgba(0,0,0,0.75)}

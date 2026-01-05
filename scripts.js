@@ -793,11 +793,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function addPendingFiles(files){
     if(!files) return;
     Array.from(files).forEach(file=>{
+      if(!file) return;
       const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+      // Evita duplicados por nombre y tamaño
+      if(pendingMedia.some(m=> m.file && m.file.name === file.name && m.file.size === file.size)) return;
       const preview = URL.createObjectURL(file);
       pendingMedia.push({ file, type, preview });
     });
     renderPendingPreviews();
+  }
+
+  function readFileAsDataURL(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   function setupMediaInputs(){
@@ -1102,7 +1114,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
               media.push({ type, url, thumb: type==='image' ? url : '' });
             }
           } else {
-            notify('No hay almacenamiento configurado; se guardará el evento sin archivos.');
+            // Fallback local: guarda dataURL (persistirá en localStorage). Evita archivos enormes.
+            const TOO_LARGE = 4.5 * 1024 * 1024; // ~4.5MB límite de cortesía
+            for(const file of mediaFiles){
+              if(file.size > TOO_LARGE){
+                notify(`Archivo demasiado grande para guardar localmente: ${file.name}`);
+                continue;
+              }
+              const dataUrl = await readFileAsDataURL(file);
+              const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+              media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
+            }
           }
         }
         const flyer = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
