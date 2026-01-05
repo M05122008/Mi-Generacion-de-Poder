@@ -562,7 +562,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       const db = window._FIREBASE.db;
       const media = [];
-      let fallbackLocal = false;
       if(mediaFiles && mediaFiles.length){
         for(const file of mediaFiles){
           try{
@@ -570,29 +569,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
             const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
             media.push({ type, url, thumb: type==='image' ? url : '' });
           }catch(err){
-            console.warn('Upload failed, using local dataURL fallback', err);
-            // Fallback a dataURL solo si NO vamos a Firestore; guardar en local después
-            const dataUrl = await readFileAsDataURL(file);
-            const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
-            media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
-            fallbackLocal = true;
+            console.warn('Upload failed, skipping file', err);
+            // Si no hay storage configurado, intenta fallback local (dataURL) para no perderlo
+            if(!window._UPLOAD && !(window._FIREBASE && window._FIREBASE.storage)){
+              const dataUrl = await readFileAsDataURL(file);
+              const type = file.type && file.type.startsWith('video') ? 'video' : 'image';
+              media.push({ type, url: dataUrl, thumb: type==='image' ? dataUrl : '' });
+            } else {
+              notify(`No se pudo subir ${file.name}; se omitirá este archivo.`);
+            }
           }
         }
       }
       const flyerUrl = media.find(m=>m.type==='image')?.url || media[0]?.url || '';
 
-      if(db && !fallbackLocal){
+      if(db){
         await db.collection('events').add({ date: dateISO, title: title||'', time: time||'', description: description||'', flyer: flyerUrl, media, createdAt: new Date() });
         notify('Evento creado en Firebase');
       } else {
-        // fallback a localStorage (usa dataURL si hubo errores de red/subida o si no hay db)
+        // fallback a localStorage (dataURL si no hubo storage) 
         const obj = { id: cryptoRandomId(), title: title||'', date: dateISO, time: time||'', description: description||'', flyer: flyerUrl, media };
         events.push(obj);
         saveEvents();
         renderCalendar(currentDate);
         renderAdminList();
         renderNextEvent();
-        notify(fallbackLocal ? 'Evento guardado localmente (sin subir archivos al servidor)' : 'Evento creado en local (sin Firebase)');
+        notify('Evento creado en local (sin Firebase)');
       }
     }catch(err){ console.error(err); notify('Error creando evento: '+err.message); }
   }
