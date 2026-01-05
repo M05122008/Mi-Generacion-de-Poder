@@ -1004,27 +1004,57 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const mediaList = (ev.media && ev.media.length) ? ev.media : (ev.flyer ? [{ type:'image', url: ev.flyer, thumb: ev.flyer }] : []);
       it.innerHTML = html;
       if(mediaList.length){
-        const grid = document.createElement('div'); grid.className = 'media-previews';
         const imagesOnly = mediaList.map(x=>({ src: x.url, alt: ev.title || 'Flyer' }));
-        imagesOnly.forEach((m, idx)=>{
-          const card = document.createElement('div'); card.className = 'media-card';
-          const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = 'Flyer';
-          const thumbEl = document.createElement('img');
-          thumbEl.src = m.src;
-          thumbEl.alt = ev.title || 'Flyer';
-          thumbEl.style.cursor = 'pointer';
-          card.appendChild(thumbEl);
-          card.appendChild(badge);
-          card.addEventListener('click', ()=>{
-            if(!modalContent) return;
-            currentMediaType = 'image';
-            currentMediaList = imagesOnly;
-            currentMediaIndex = idx;
-            modalContent.innerHTML = `<img class="modal-media" src="${m.src}" alt="${ev.title||'Flyer'}"/>`;
-            openModal();
+        const grid = document.createElement('div'); grid.className = 'media-previews';
+        const card = document.createElement('div'); card.className = 'media-card';
+        const slider = document.createElement('div'); slider.className = 'media-slider';
+        const imgEl = document.createElement('img');
+        let current = 0;
+        const total = imagesOnly.length;
+
+        const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = total > 1 ? `Flyer (${total})` : 'Flyer';
+        badge.style.zIndex = '2';
+
+        function setSlide(idx){
+          current = (idx + total) % total;
+          const m = imagesOnly[current];
+          imgEl.src = m.src;
+          imgEl.alt = m.alt;
+        }
+
+        function openFull(){
+          if(!modalContent) return;
+          currentMediaType = 'image';
+          currentMediaList = imagesOnly;
+          currentMediaIndex = current;
+          modalContent.innerHTML = `<img class="modal-media" src="${imagesOnly[current].src}" alt="${imagesOnly[current].alt}"/>`;
+          openModal();
+        }
+
+        imgEl.addEventListener('click', openFull);
+        imgEl.style.cursor = 'pointer';
+        slider.appendChild(imgEl);
+
+        if(total > 1){
+          const prevBtn = document.createElement('button'); prevBtn.className = 'media-nav prev'; prevBtn.type = 'button'; prevBtn.innerHTML = '‹';
+          const nextBtn = document.createElement('button'); nextBtn.className = 'media-nav next'; nextBtn.type = 'button'; nextBtn.innerHTML = '›';
+          prevBtn.addEventListener('click', ()=> setSlide(current-1));
+          nextBtn.addEventListener('click', ()=> setSlide(current+1));
+          slider.appendChild(prevBtn);
+          slider.appendChild(nextBtn);
+
+          let touchStartX = 0;
+          slider.addEventListener('touchstart', (e)=>{ touchStartX = e.touches[0]?.clientX || 0; }, {passive:true});
+          slider.addEventListener('touchend', (e)=>{
+            const dx = (e.changedTouches[0]?.clientX || 0) - touchStartX;
+            if(Math.abs(dx) > 40){ dx < 0 ? setSlide(current+1) : setSlide(current-1); }
           });
-          grid.appendChild(card);
-        });
+        }
+
+        setSlide(0);
+        card.appendChild(slider);
+        card.appendChild(badge);
+        grid.appendChild(card);
         it.appendChild(grid);
       }
       eventsList.appendChild(it);
